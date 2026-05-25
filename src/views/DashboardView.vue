@@ -32,31 +32,21 @@
         </div>
         <n-tag :type="streamTagType" round>{{ streamQualityLabel }}</n-tag>
       </div>
+
       <div class="stream-grid">
-        <div>
-          <span>資料模式</span>
-          <strong>{{ store.streamMode === 'demo' ? 'Demo simulation' : 'Live WebSocket' }}</strong>
-        </div>
-        <div>
-          <span>連線狀態</span>
-          <strong>{{ readyStateLabel }}</strong>
-        </div>
-        <div>
-          <span>Heartbeat</span>
-          <strong>{{ heartbeatLabel }}</strong>
-        </div>
-        <div>
-          <span>Latency</span>
-          <strong>{{ store.latencyMs }} ms</strong>
-        </div>
-        <div>
-          <span>Reconnect</span>
-          <strong>{{ store.reconnectAttempts }} 次</strong>
-        </div>
-        <div>
-          <span>最後心跳</span>
-          <strong>{{ store.lastHeartbeatAt || '--:--:--' }}</strong>
-        </div>
+        <article
+          v-for="metric in streamMetrics"
+          :key="metric.label"
+          class="stream-card"
+          :class="`stream-card--${metric.tone}`"
+        >
+          <div class="stream-card-top">
+            <span class="stream-dot" />
+            <span>{{ metric.label }}</span>
+          </div>
+          <strong>{{ metric.value }}</strong>
+          <em>{{ metric.note }}</em>
+        </article>
       </div>
     </section>
 
@@ -222,6 +212,8 @@ import YieldChart from '@/components/YieldChart.vue'
 import PressureFlowChart from '@/components/PressureFlowChart.vue'
 import EventLog from '@/components/EventLog.vue'
 
+type StreamTone = 'healthy' | 'watch' | 'offline'
+
 const store = useEquipmentStore()
 const osTheme = useOsTheme()
 const injectedIsDark = inject<ComputedRef<boolean>>('isDark')
@@ -259,6 +251,57 @@ const heartbeatLabel = computed(() => {
   }
   return map[store.heartbeatStatus]
 })
+
+const streamTone = computed<StreamTone>(() => {
+  if (store.streamQuality === 'healthy') return 'healthy'
+  if (store.streamQuality === 'watch') return 'watch'
+  return 'offline'
+})
+
+const heartbeatTone = computed<StreamTone>(() => {
+  if (store.heartbeatStatus === 'healthy') return 'healthy'
+  if (store.heartbeatStatus === 'delayed') return 'watch'
+  return 'offline'
+})
+
+const streamMetrics = computed(() => [
+  {
+    label: '資料模式',
+    value: store.streamMode === 'demo' ? 'Demo simulation' : 'Live WebSocket',
+    note: store.streamMode === 'demo' ? '無後端也可展示' : '外部串流來源',
+    tone: 'healthy' as StreamTone,
+  },
+  {
+    label: '連線狀態',
+    value: readyStateLabel.value,
+    note: store.wsConnected ? '資料通道啟用中' : '等待重新連線',
+    tone: streamTone.value,
+  },
+  {
+    label: 'Heartbeat',
+    value: heartbeatLabel.value,
+    note: store.lastHeartbeatAt || '--:--:--',
+    tone: heartbeatTone.value,
+  },
+  {
+    label: 'Latency',
+    value: `${store.latencyMs} ms`,
+    note: store.latencyMs <= 900 ? '低於 1 秒目標' : '超過監控門檻',
+    tone: store.latencyMs <= 900 ? 'healthy' as StreamTone : 'watch' as StreamTone,
+  },
+  {
+    label: 'Reconnect',
+    value: `${store.reconnectAttempts} 次`,
+    note: store.reconnectAttempts === 0 ? '連線穩定' : '已啟動自動重連',
+    tone: store.reconnectAttempts === 0 ? 'healthy' as StreamTone : 'watch' as StreamTone,
+  },
+  {
+    label: '最後更新',
+    value: store.lastUpdated || '--:--:--',
+    note: 'Telemetry tick',
+    tone: streamTone.value,
+  },
+])
 
 useWebSocket()
 useSSE()
@@ -376,6 +419,22 @@ useSSE()
 
 .stream-panel {
   margin-bottom: 14px;
+  overflow: hidden;
+  position: relative;
+}
+
+.stream-panel::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(90deg, rgba(14, 165, 233, 0.12), transparent 32%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent);
+  pointer-events: none;
+}
+
+.stream-panel > * {
+  position: relative;
 }
 
 .stream-grid {
@@ -384,26 +443,75 @@ useSSE()
   gap: 10px;
 }
 
-.stream-grid div {
+.stream-card {
+  min-height: 124px;
   border: 1px solid var(--app-border);
-  border-radius: 10px;
-  background: var(--app-surface-soft);
-  padding: 12px;
+  border-top: 3px solid #16a34a;
+  border-radius: 12px;
+  background:
+    linear-gradient(135deg, rgba(22, 163, 74, 0.08), transparent 58%),
+    var(--app-surface-soft);
+  padding: 14px;
 }
 
-.stream-grid span,
-.bottleneck-grid span {
-  display: block;
+.stream-card--watch {
+  border-top-color: #d97706;
+  background:
+    linear-gradient(135deg, rgba(217, 119, 6, 0.1), transparent 58%),
+    var(--app-surface-soft);
+}
+
+.stream-card--offline {
+  border-top-color: #dc2626;
+  background:
+    linear-gradient(135deg, rgba(220, 38, 38, 0.1), transparent 58%),
+    var(--app-surface-soft);
+}
+
+.stream-card-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   color: var(--n-text-color-3);
   font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
 }
 
-.stream-grid strong,
-.bottleneck-grid strong {
+.stream-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 999px;
+  background: #16a34a;
+  box-shadow: 0 0 0 4px rgba(22, 163, 74, 0.12);
+}
+
+.stream-card--watch .stream-dot {
+  background: #d97706;
+  box-shadow: 0 0 0 4px rgba(217, 119, 6, 0.14);
+}
+
+.stream-card--offline .stream-dot {
+  background: #dc2626;
+  box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.16);
+}
+
+.stream-card strong {
   display: block;
-  margin-top: 6px;
+  margin-top: 16px;
   color: var(--n-text-color-1);
-  font-size: 18px;
+  font-size: 22px;
+  font-weight: 900;
+  line-height: 1.08;
+}
+
+.stream-card em {
+  display: block;
+  margin-top: 8px;
+  color: var(--n-text-color-3);
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 800;
 }
 
 .insight-grid {
@@ -458,6 +566,19 @@ useSSE()
   padding: 12px;
 }
 
+.bottleneck-grid span {
+  display: block;
+  color: var(--n-text-color-3);
+  font-size: 12px;
+}
+
+.bottleneck-grid strong {
+  display: block;
+  margin-top: 6px;
+  color: var(--n-text-color-1);
+  font-size: 18px;
+}
+
 .action-list {
   display: grid;
   gap: 10px;
@@ -494,7 +615,7 @@ useSSE()
   background: var(--app-surface);
 }
 
-@media (max-width: 1180px) {
+@media (max-width: 1280px) {
   .stream-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }

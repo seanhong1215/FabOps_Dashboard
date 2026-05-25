@@ -99,6 +99,7 @@ FabOps Dashboard 是一個使用 Vue 3 + TypeScript 打造的半導體智慧製�
 - `feat: 新增營運分析頁`：新增 `/analytics` 營運分析頁、header 導覽項、報表 KPI、OEE / WPH 趨勢、良率損失、停機 Pareto、設備排名與班報摘要。
 - `feat: 強化即時串流狀態監控`：新增 stream mode、ready state、heartbeat status、latency、reconnect attempts、last heartbeat，並在 Dashboard 顯示即時串流健康狀態。
 - 本階段：新增 `/ai-insights` AI 洞察頁，將作品從監控 dashboard 提升為智慧製造平台，展示 anomaly score、RUL、異常貢獻因子、預測維修與面試敘事。
+- 本階段：優化首頁 realtime stream-grid 視覺，將純文字區塊升級為狀態卡片；並因安全性需求升級 Vite 至 8.x。
 
 ## 常用命令
 
@@ -111,4 +112,4 @@ npm run preview
 
 ## 已知 Build 提醒
 
-執行 build 時，Vite 可能會顯示 CJS Node API deprecation warning；較新版 Vite / Rolldown 也可能顯示 plugin timing 或 chunk size warning。這些目前不會阻擋 production output；若要處理，優先檢查 `charts` chunk 與圖表套件切分策略。
+執行 build 時，Vite / Rolldown 可能顯示 plugin timing 或 chunk size warning。這些目前不會阻擋 production output；若要處理，優先檢查 `charts` chunk 與圖表套件切分策略。
