@@ -2,7 +2,7 @@
 
 半導體智慧製造營運平台 / Smart Manufacturing Operations Platform
 
-FabOps Dashboard 是以 Vue 3 + TypeScript 建置的面試作品，定位不是單純監控 dashboard，而是可展示「即時營運監控、Digital Twin、告警處置、營運分析、AI 風險判讀」的企業級前端平台。
+FabOps Dashboard 是以 Vue 3 + TypeScript 建置的作品集專案，定位不是單純監控 dashboard，而是可展示「即時營運監控、Digital Twin、告警處置、營運分析、AI 風險判讀」的企業級前端平台。
 
 ## Live Demo
 
@@ -14,7 +14,7 @@ https://seanhong1215.github.io/FabOps_Dashboard/
 
 此作品可在沒有後端服務的情況下以 demo mode 運作，前端會模擬設備 telemetry、即時事件、告警與 AI 風險訊號。
 
-## 面試展示重點
+## 作品展示重點
 
 - 即時總覽：Fab health、OEE、WPH、Yield、設備瓶頸與行動建議。
 - 即時串流：WebSocket demo fallback、heartbeat、latency、reconnect attempts。
@@ -64,7 +64,7 @@ Vue 3 Frontend
         +-- Naive UI enterprise interface
 ```
 
-目前作品採 demo-first 設計：沒有外部 WebSocket server 時，仍可由前端模擬資料流與連線健康狀態，方便面試現場展示。
+目前作品採 demo-first 設計：沒有外部 WebSocket server 時，仍可由前端模擬資料流與連線健康狀態，方便現場或遠端展示。
 
 ## 本機啟動
 

@@ -1,12 +1,12 @@
 # FabOps Dashboard Project Guide
 
-本文件是目前專案最新整合指南，面向開發者與面試展示準備。README 保持精簡對外說明；AGENTS 則只保留 coding agent 協作規則。
+本文件是目前專案最新整合指南，面向開發者與作品展示準備。README 保持精簡對外說明；AGENTS 則只保留 coding agent 協作規則。
 
 ## 作品定位
 
 FabOps Dashboard 是一個半導體智慧製造營運平台，用 Vue 3 + TypeScript 建置，展示從現場監控到營運決策的完整前端能力。
 
-此作品面試時應被描述為：
+此作品對外展示時應被描述為：
 
 ```text
 一個可在沒有後端依賴下展示的智慧製造平台，整合即時設備監控、Digital Twin、告警中心、營運分析與 AI 風險判讀。
@@ -18,7 +18,7 @@ FabOps Dashboard 是一個半導體智慧製造營運平台，用 Vue 3 + TypeSc
 - 設備工程師從告警與設備矩陣判斷異常優先級。
 - 製程值班人員觀察溫度、流量、壓力、良率等趨勢。
 - 管理者查看營運分析、停機 Pareto、設備排名與班報摘要。
-- 面試官可看到前端架構、資料建模、即時串流、視覺化與 UI 設計能力。
+- 評審或技術主管可看到前端架構、資料建模、即時串流、視覺化與 UI 設計能力。
 
 ## 目前完成頁面
 
@@ -76,7 +76,7 @@ Vue 3 Frontend
 - Enterprise UI：以 Naive UI、CSS variables、light/dark theme 與 dashboard layout 呈現實務工具感。
 - Vite manual chunks：保留 `vue-vendor`、`ui`、`charts`、`zrender` 分包策略。
 
-## 面試展示順序
+## 作品展示順序
 
 1. 從即時總覽說明平台目標：值班主管要在 30 秒內知道 Fab 是否健康、瓶頸在哪、下一步做什麼。
 2. 展示 realtime stream health：說明 demo fallback、heartbeat、latency、reconnect attempts，不依賴後端也能展示即時系統設計。

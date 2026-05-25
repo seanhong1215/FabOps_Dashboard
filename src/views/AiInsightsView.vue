@@ -166,8 +166,8 @@
       <article class="panel panel--wide">
         <div class="section-header">
           <div>
-            <span class="section-kicker">Scenario story</span>
-            <h2>面試展示敘事</h2>
+            <span class="section-kicker">Operations workflow</span>
+            <h2>智慧製造情境流程</h2>
           </div>
         </div>
         <div class="story-grid">
