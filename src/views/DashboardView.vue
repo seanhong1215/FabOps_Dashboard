@@ -5,14 +5,14 @@
         <div class="eyebrow">Fab 戰情中心 - 12 吋產線</div>
         <h1>即時設備營運與產線健康監控</h1>
         <p>
-          整合設備健康、瓶頸偵測、製程訊號與異常處置，提供值班主管可直接判讀的生產監控介面。
+          整合設備健康、瓶頸偵測、製程訊號、即時串流與異常處置，提供值班主管可直接判讀的生產監控介面。
         </p>
       </div>
 
       <div class="hero-panel">
         <div class="status-strip">
           <n-badge :type="store.wsConnected ? 'success' : 'error'" dot :processing="store.wsConnected" />
-          <span>{{ store.wsConnected ? '即時展示串流連線中' : '串流離線' }}</span>
+          <span>{{ store.wsConnected ? '即時串流連線中' : '即時串流離線' }}</span>
         </div>
         <div class="hero-score">{{ store.fabHealth }}</div>
         <div class="hero-score-label">Fab 健康分數</div>
@@ -20,6 +20,42 @@
           <span>{{ store.runningCount }} 台運轉</span>
           <span>{{ store.errorCount }} 台停機</span>
           <span>{{ store.totalQueue }} lots 排隊</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="stream-panel">
+      <div class="section-header">
+        <div>
+          <span class="section-kicker">Realtime system</span>
+          <h2>即時串流健康狀態</h2>
+        </div>
+        <n-tag :type="streamTagType" round>{{ streamQualityLabel }}</n-tag>
+      </div>
+      <div class="stream-grid">
+        <div>
+          <span>資料模式</span>
+          <strong>{{ store.streamMode === 'demo' ? 'Demo simulation' : 'Live WebSocket' }}</strong>
+        </div>
+        <div>
+          <span>連線狀態</span>
+          <strong>{{ readyStateLabel }}</strong>
+        </div>
+        <div>
+          <span>Heartbeat</span>
+          <strong>{{ heartbeatLabel }}</strong>
+        </div>
+        <div>
+          <span>Latency</span>
+          <strong>{{ store.latencyMs }} ms</strong>
+        </div>
+        <div>
+          <span>Reconnect</span>
+          <strong>{{ store.reconnectAttempts }} 次</strong>
+        </div>
+        <div>
+          <span>最後心跳</span>
+          <strong>{{ store.lastHeartbeatAt || '--:--:--' }}</strong>
         </div>
       </div>
     </section>
@@ -192,6 +228,38 @@ const injectedIsDark = inject<ComputedRef<boolean>>('isDark')
 const isDark = computed(() => injectedIsDark?.value ?? osTheme.value === 'dark')
 const bottleneckGap = computed(() => store.bottleneck.targetWph - store.bottleneck.wph)
 
+const streamTagType = computed(() => {
+  if (store.streamQuality === 'healthy') return 'success'
+  if (store.streamQuality === 'watch') return 'warning'
+  return 'error'
+})
+
+const streamQualityLabel = computed(() => {
+  if (store.streamQuality === 'healthy') return '串流健康'
+  if (store.streamQuality === 'watch') return '延遲觀察'
+  return '串流離線'
+})
+
+const readyStateLabel = computed(() => {
+  const map = {
+    connecting: '連線中',
+    open: '已連線',
+    reconnecting: '重新連線',
+    closed: '已關閉',
+    error: '傳輸異常',
+  }
+  return map[store.readyState]
+})
+
+const heartbeatLabel = computed(() => {
+  const map = {
+    healthy: '正常',
+    delayed: '延遲',
+    offline: '離線',
+  }
+  return map[store.heartbeatStatus]
+})
+
 useWebSocket()
 useSSE()
 </script>
@@ -208,11 +276,12 @@ useSSE()
   grid-template-columns: minmax(0, 1fr) 340px;
   gap: 22px;
   align-items: stretch;
-  margin-bottom: 18px;
+  margin-bottom: 14px;
 }
 
 .hero-copy,
 .hero-panel,
+.stream-panel,
 .ops-card,
 .chart-card,
 .log-section {
@@ -245,11 +314,11 @@ useSSE()
 .hero h1 {
   max-width: 780px;
   margin: 16px 0 12px;
+  color: var(--app-hero-text);
   font-size: clamp(34px, 5vw, 64px);
   font-weight: 850;
   letter-spacing: 0;
   line-height: 0.95;
-  color: var(--app-hero-text);
 }
 
 .hero p {
@@ -260,7 +329,8 @@ useSSE()
   line-height: 1.6;
 }
 
-.hero-panel {
+.hero-panel,
+.stream-panel {
   border-radius: 18px;
   background: var(--app-surface);
   padding: 26px;
@@ -302,6 +372,38 @@ useSSE()
   background: var(--app-chip-bg);
   color: var(--app-chip-text);
   padding: 7px 10px;
+}
+
+.stream-panel {
+  margin-bottom: 14px;
+}
+
+.stream-grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.stream-grid div {
+  border: 1px solid var(--app-border);
+  border-radius: 10px;
+  background: var(--app-surface-soft);
+  padding: 12px;
+}
+
+.stream-grid span,
+.bottleneck-grid span {
+  display: block;
+  color: var(--n-text-color-3);
+  font-size: 12px;
+}
+
+.stream-grid strong,
+.bottleneck-grid strong {
+  display: block;
+  margin-top: 6px;
+  color: var(--n-text-color-1);
+  font-size: 18px;
 }
 
 .insight-grid {
@@ -350,23 +452,10 @@ useSSE()
 }
 
 .bottleneck-grid div {
+  border: 1px solid var(--app-border);
   border-radius: 10px;
   background: var(--app-surface-soft);
-  border: 1px solid var(--app-border);
   padding: 12px;
-}
-
-.bottleneck-grid span {
-  display: block;
-  color: var(--n-text-color-3);
-  font-size: 12px;
-}
-
-.bottleneck-grid strong {
-  display: block;
-  margin-top: 6px;
-  color: var(--n-text-color-1);
-  font-size: 18px;
 }
 
 .action-list {
@@ -405,6 +494,12 @@ useSSE()
   background: var(--app-surface);
 }
 
+@media (max-width: 1180px) {
+  .stream-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
 @media (max-width: 1100px) {
   .hero,
   .operations-row,
@@ -429,13 +524,15 @@ useSSE()
     padding: 24px;
   }
 
-  .hero-panel {
+  .hero-panel,
+  .stream-panel {
     padding: 22px;
   }
 
   .insight-grid,
   .machine-grid,
-  .bottleneck-grid {
+  .bottleneck-grid,
+  .stream-grid {
     grid-template-columns: 1fr;
   }
 }

@@ -19,7 +19,7 @@ FabOps Dashboard 是一個使用 Vue 3 + TypeScript 打造的半導體廠務營�
 ## 主要檔案
 
 - `src/App.vue`：應用程式 shell、header 導覽、light/dark theme provider 與全站 theme variables。
-- `src/views/DashboardView.vue`：主儀表板頁面，包含 hero、KPI、瓶頸、行動建議、charts、equipment matrix 與事件串流。
+- `src/views/DashboardView.vue`：主儀表板頁面，包含 hero、即時串流健康狀態、KPI、瓶頸、行動建議、charts、equipment matrix 與事件串流。
 - `src/views/FactoryMapView.vue`：廠區 Digital Twin / Factory Map，包含生產流程、站點風險、設備位置與設備詳情 panel。
 - `src/views/AlarmCenterView.vue`：告警中心，包含告警 KPI、篩選搜尋、即時告警清單、事件時間線與處置建議。
 - `src/views/AnalyticsView.vue`：營運分析與產能報表，包含 OEE / WPH 趨勢、良率損失、停機 Pareto、設備排名與班報摘要。
@@ -29,7 +29,7 @@ FabOps Dashboard 是一個使用 Vue 3 + TypeScript 打造的半導體廠務營�
 - `src/components/MachineStatus.vue`：設備健康狀態卡片。
 - `src/components/EventLog.vue`：即時事件串流。
 - `src/components/*Chart.vue`：ECharts 圖表元件。
-- `src/composables/useWebSocket.ts`：WebSocket adapter，包含 demo simulation fallback。
+- `src/composables/useWebSocket.ts`：WebSocket adapter，包含 demo simulation fallback、heartbeat、latency 計算與 auto reconnect 狀態。
 - `src/composables/useSSE.ts`：SSE event stream adapter。
 - `src/router/index.ts`：route-level lazy loading。
 - `vite.config.ts`：路徑 alias、dev server 與 manual chunk 策略。
@@ -37,7 +37,7 @@ FabOps Dashboard 是一個使用 Vue 3 + TypeScript 打造的半導體廠務營�
 ## 目前 UI 結構
 
 - Sticky header：品牌名稱、展示資料 badge、theme toggle、頁面導覽。
-- 即時總覽 `/`：Fab command center、KPI cards、瓶頸與行動建議、charts、設備健康矩陣、事件串流。
+- 即時總覽 `/`：Fab command center、realtime system 狀態面板、KPI cards、瓶頸與行動建議、charts、設備健康矩陣、事件串流。
 - 廠區地圖 `/factory-map`：Digital Twin hero、生產流程、區域設備地圖、選取設備詳情、異常高亮。
 - 告警中心 `/alarms`：告警統計、搜尋與篩選、告警列表、事件時間線、處置建議。
 - 營運分析 `/analytics`：報表區間切換、OEE / WPH 趨勢、良率損失拆解、停機 Pareto、設備排名、班報摘要。
@@ -81,7 +81,8 @@ FabOps Dashboard 是一個使用 Vue 3 + TypeScript 打造的半導體廠務營�
 - 優先沿用現有專案模式，不要過早新增抽象層。
 - 設備資料異動應先更新 `src/types/equipment.ts` 的型別。
 - 圖表邏輯應維持在 chart components 中；若只是報表式摘要，可在 view 內以 CSS 視覺化。
-- 即時串流整合應維持在 composables 中。
+- 即時串流整合應維持在 composables 中；連線狀態、mode、heartbeat、latency、reconnect attempts 應集中由 `src/stores/equipment.ts` 暴露給 UI。
+- `useWebSocket.ts` 的 demo mode 必須持續可用，沒有外部 WebSocket server 時仍要能展示 heartbeat 與 latency。
 - 保留 `src/router/index.ts` 的 route-level lazy loading。
 - 保留 Vite manual chunks：`vue-vendor`、`ui`、`charts`、`zrender`，除非有量測結果支持調整。
 - 不要讓專案依賴後端才能展示；demo mode 必須在沒有外部服務時仍可運作。
@@ -92,7 +93,8 @@ FabOps Dashboard 是一個使用 Vue 3 + TypeScript 打造的半導體廠務營�
 
 - `feat: 建立 FabOps 監控儀表板`：建立 Vue 3 + TypeScript dashboard、demo telemetry、charts、Digital Twin 與 Alarm Center 初版。
 - `docs: 更新專案協作指引`：重建可讀的專案協作規範。
-- 本階段：新增 `/analytics` 營運分析頁、header 導覽項、報表 KPI、OEE / WPH 趨勢、良率損失、停機 Pareto、設備排名與班報摘要。
+- `feat: 新增營運分析頁`：新增 `/analytics` 營運分析頁、header 導覽項、報表 KPI、OEE / WPH 趨勢、良率損失、停機 Pareto、設備排名與班報摘要。
+- 本階段：強化 realtime system design，新增 stream mode、ready state、heartbeat status、latency、reconnect attempts、last heartbeat，並在 Dashboard 顯示即時串流健康狀態。
 
 ## 常用命令
 

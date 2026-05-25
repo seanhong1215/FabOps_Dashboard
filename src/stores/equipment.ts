@@ -6,6 +6,9 @@ import type {
   TimeSeriesPoint,
   LogEntry,
   LogLevel,
+  StreamMode,
+  HeartbeatStatus,
+  WsReadyState,
 } from '@/types/equipment'
 
 const INITIAL_MACHINES: Machine[] = [
@@ -140,6 +143,12 @@ export const useEquipmentStore = defineStore('equipment', () => {
   const logs = ref<LogEntry[]>([])
   const wsConnected = ref(false)
   const lastUpdated = ref('')
+  const streamMode = ref<StreamMode>('demo')
+  const readyState = ref<WsReadyState>('closed')
+  const reconnectAttempts = ref(0)
+  const heartbeatStatus = ref<HeartbeatStatus>('offline')
+  const latencyMs = ref(0)
+  const lastHeartbeatAt = ref('')
 
   const machineById = computed(() =>
     (id: string) => machines.value.find(m => m.id === id)
@@ -171,6 +180,12 @@ export const useEquipmentStore = defineStore('equipment', () => {
     [...machines.value].sort((a, b) => (a.wph / a.targetWph) - (b.wph / b.targetWph))[0]
   )
 
+  const streamQuality = computed(() => {
+    if (!wsConnected.value) return 'offline'
+    if (heartbeatStatus.value === 'delayed' || latencyMs.value > 900) return 'watch'
+    return 'healthy'
+  })
+
   function applyWsUpdate(machineId: string, patch: Partial<Machine>) {
     const idx = machines.value.findIndex(m => m.id === machineId)
     if (idx !== -1) {
@@ -197,10 +212,33 @@ export const useEquipmentStore = defineStore('equipment', () => {
     if (logs.value.length > 60) logs.value.pop()
   }
 
+  function setStreamMode(mode: StreamMode) {
+    streamMode.value = mode
+  }
+
+  function setRealtimeState(state: WsReadyState, connected = state === 'open') {
+    readyState.value = state
+    wsConnected.value = connected
+    if (!connected) {
+      heartbeatStatus.value = 'offline'
+    }
+  }
+
+  function setReconnectAttempts(count: number) {
+    reconnectAttempts.value = count
+  }
+
+  function recordHeartbeat(latency: number) {
+    latencyMs.value = Math.max(0, Math.round(latency))
+    heartbeatStatus.value = latencyMs.value > 900 ? 'delayed' : 'healthy'
+    lastHeartbeatAt.value = nowHMS()
+  }
+
   function simulateTick() {
     const now = nowHMS()
     lastUpdated.value = now
     wsConnected.value = true
+    readyState.value = 'open'
 
     const newTemp = randBetween(308, 318, 1)
     const newPressure = randBetween(3.9, 4.7, 2)
@@ -260,8 +298,19 @@ export const useEquipmentStore = defineStore('equipment', () => {
     fabHealth,
     wphByMachine,
     bottleneck,
+    streamMode,
+    readyState,
+    reconnectAttempts,
+    heartbeatStatus,
+    latencyMs,
+    lastHeartbeatAt,
+    streamQuality,
     applyWsUpdate,
     simulateTick,
     addLog,
+    setStreamMode,
+    setRealtimeState,
+    setReconnectAttempts,
+    recordHeartbeat,
   }
 })

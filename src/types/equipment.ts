@@ -62,4 +62,8 @@ export interface KpiData {
   oeeChange: number
 }
 
-export type WsReadyState = 'connecting' | 'open' | 'closed' | 'error'
+export type WsReadyState = 'connecting' | 'open' | 'reconnecting' | 'closed' | 'error'
+
+export type StreamMode = 'demo' | 'live'
+
+export type HeartbeatStatus = 'healthy' | 'delayed' | 'offline'
