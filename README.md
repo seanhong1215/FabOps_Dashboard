@@ -204,22 +204,28 @@ npm run preview
 
 ## GitHub Pages 部署
 
-本專案使用 GitHub Actions 部署到 GitHub Pages。
+本專案使用 `gh-pages` 分支部署到 GitHub Pages，不依賴 GitHub CLI。
 
 部署流程：
 
-```text
-push main
-  -> npm ci
-  -> npm run build
-  -> upload dist
-  -> deploy GitHub Pages
+```bash
+$env:GITHUB_PAGES='true'
+npm run build
+New-Item -ItemType File -Path dist/.nojekyll -Force
+
+cd dist
+git init
+git checkout -b gh-pages
+git add .
+git commit -m "deploy: GitHub Pages"
+git remote add origin git@github.com:seanhong1215/FabOps_Dashboard.git
+git push -f origin gh-pages
 ```
 
 Vite base path 已設定為：
 
 ```ts
-base: process.env.GITHUB_ACTIONS ? '/FabOps_Dashboard/' : '/'
+base: process.env.GITHUB_PAGES || process.env.GITHUB_ACTIONS ? '/FabOps_Dashboard/' : '/'
 ```
 
 ## 面試講解範例
@@ -238,6 +244,6 @@ base: process.env.GITHUB_ACTIONS ? '/FabOps_Dashboard/' : '/'
 - 接入真實 WebSocket / SSE backend
 - 建立 MQTT / OPC UA gateway demo
 - 將 rule-based AI 替換為 ML inference API
-- 加入 GitHub Actions build status badge
+- 加入部署截圖與 GitHub Pages 狀態說明
 - 加入 ESLint / Prettier / Vitest
 - 補正式截圖與部署連結預覽圖
