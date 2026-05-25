@@ -76,6 +76,14 @@ FabOps Dashboard 是一個使用 Vue 3 + TypeScript 打造的半導體智慧製�
 
 目前採 `gh-pages` 分支部署，不使用 GitHub CLI，也不依賴 GitHub Actions workflow。
 
+優先使用 npm script：
+
+```powershell
+npm run deploy
+```
+
+手動部署流程：
+
 ```powershell
 $env:GITHUB_PAGES='true'
 npm run build
@@ -103,6 +111,7 @@ git push -f origin gh-pages
 - 本階段：區分 `README.md`、`AGENTS.md` 與 `PROJECT_GUIDE.md` 的文件角色，新增目前專案最新整合指南。
 - 本階段：移除介面與文件中不適合產品語境的展示字樣，改為作品展示與營運情境語境。
 - 本階段：提交文件整理結果，移除舊的 `Step1.md`，保留 `Intro.md` 作為原始優化方向參考，並清空工作樹未提交變更。
+- 本階段：新增 `npm run deploy`，封裝 GitHub Pages `gh-pages` 分支部署流程，並同步更新 README、PROJECT_GUIDE 與 AGENTS 部署說明。
 
 ## 已知 Build 提醒
 

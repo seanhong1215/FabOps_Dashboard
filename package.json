@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vue-tsc && vite build",
+    "deploy": "powershell -NoProfile -ExecutionPolicy Bypass -Command \"$env:GITHUB_PAGES='true'; npm run build; New-Item -ItemType File -Path 'dist/.nojekyll' -Force; Push-Location dist; if (!(Test-Path '.git')) { git init }; git checkout -B gh-pages; git add -A; git commit -m 'deploy: update GitHub Pages'; if (git remote get-url origin 2>$null) { git remote set-url origin 'git@github.com:seanhong1215/FabOps_Dashboard.git' } else { git remote add origin 'git@github.com:seanhong1215/FabOps_Dashboard.git' }; git push -f origin gh-pages; Pop-Location\"",
     "preview": "vite preview",
     "type-check": "vue-tsc --noEmit"
   },

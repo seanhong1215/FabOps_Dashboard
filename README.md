@@ -96,6 +96,14 @@ npm run preview
 此專案目前使用 `gh-pages` 分支部署，不依賴 GitHub CLI。
 
 ```powershell
+npm run deploy
+```
+
+部署腳本會自動執行 build、建立 `dist/.nojekyll`，並將 `dist` 推送到 `gh-pages` 分支。
+
+手動部署流程如下：
+
+```powershell
 $env:GITHUB_PAGES='true'
 npm run build
 New-Item -ItemType File -Path dist/.nojekyll -Force

@@ -91,6 +91,14 @@ Vue 3 Frontend
 目前使用 `gh-pages` 分支部署，不使用 GitHub CLI。
 
 ```powershell
+npm run deploy
+```
+
+`npm run deploy` 會設定 `GITHUB_PAGES=true`、執行 production build、建立 `.nojekyll`，再將 `dist` 推送到 `gh-pages` 分支。
+
+手動部署流程如下：
+
+```powershell
 $env:GITHUB_PAGES='true'
 npm run build
 New-Item -ItemType File -Path dist/.nojekyll -Force
