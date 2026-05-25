@@ -113,3 +113,6 @@ npm run preview
 ## 已知 Build 提醒
 
 執行 build 時，Vite / Rolldown 可能顯示 plugin timing 或 chunk size warning。這些目前不會阻擋 production output；若要處理，優先檢查 `charts` chunk 與圖表套件切分策略。
+
+## 禁止執行的內容
+除非我要求，否則不要自動執行型別檢查或測試（例如 npm run typecheck / npm run test / npm run build）
