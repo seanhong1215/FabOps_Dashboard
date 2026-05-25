@@ -99,7 +99,7 @@ npm run preview
 npm run deploy
 ```
 
-部署腳本會自動執行 build、建立 `dist/.nojekyll`，並將 `dist` 推送到 `gh-pages` 分支。
+部署腳本會自動執行 GitHub Pages build、建立 `dist/.nojekyll`，並透過 `gh-pages` 套件將 `dist` 推送到 `gh-pages` 分支。
 
 手動部署流程如下：
 

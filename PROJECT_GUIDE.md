@@ -94,7 +94,7 @@ Vue 3 Frontend
 npm run deploy
 ```
 
-`npm run deploy` 會設定 `GITHUB_PAGES=true`、執行 production build、建立 `.nojekyll`，再將 `dist` 推送到 `gh-pages` 分支。
+`npm run deploy` 會設定 `GITHUB_PAGES=true`、執行 production build、建立 `.nojekyll`，再透過 `gh-pages` 套件將 `dist` 推送到 `gh-pages` 分支。
 
 手動部署流程如下：
 
