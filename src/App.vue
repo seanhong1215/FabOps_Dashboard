@@ -63,6 +63,7 @@ import {
   Dashboard as DashboardIcon,
   Sitemap as SitemapIcon,
   BellRinging as BellRingingIcon,
+  ReportAnalytics as ReportAnalyticsIcon,
 } from '@vicons/tabler'
 
 const osTheme = useOsTheme()
@@ -71,6 +72,7 @@ const navItems = [
   { to: '/', label: '即時總覽', icon: DashboardIcon },
   { to: '/factory-map', label: '廠區地圖', icon: SitemapIcon },
   { to: '/alarms', label: '告警中心', icon: BellRingingIcon },
+  { to: '/analytics', label: '營運分析', icon: ReportAnalyticsIcon },
 ]
 
 const isDark = computed(() =>
@@ -169,6 +171,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 18px;
   height: 64px;
   padding: 0 24px;
   background: var(--app-header-bg);
@@ -251,6 +254,13 @@ body {
   border-radius: 12px;
 }
 
+@media (max-width: 900px) {
+  .brand-subtitle,
+  .nav-link span {
+    display: none;
+  }
+}
+
 @media (max-width: 640px) {
   .app-header {
     gap: 10px;
@@ -273,10 +283,6 @@ body {
     flex: 1;
     justify-content: center;
     padding: 0 10px;
-  }
-
-  .brand-subtitle {
-    display: none;
   }
 }
 </style>

@@ -18,6 +18,11 @@ const router = createRouter({
       name: 'alarms',
       component: () => import('@/views/AlarmCenterView.vue'),
     },
+    {
+      path: '/analytics',
+      name: 'analytics',
+      component: () => import('@/views/AnalyticsView.vue'),
+    },
   ],
 })
 
