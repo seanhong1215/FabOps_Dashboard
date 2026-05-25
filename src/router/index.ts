@@ -23,6 +23,11 @@ const router = createRouter({
       name: 'analytics',
       component: () => import('@/views/AnalyticsView.vue'),
     },
+    {
+      path: '/ai-insights',
+      name: 'ai-insights',
+      component: () => import('@/views/AiInsightsView.vue'),
+    },
   ],
 })
 

@@ -6,7 +6,7 @@
           <div class="brand-mark">FD</div>
           <div>
             <n-text strong class="brand-title">FabOps Dashboard</n-text>
-            <div class="brand-subtitle">廠務營運戰情中心</div>
+            <div class="brand-subtitle">智慧製造營運平台</div>
           </div>
         </div>
 
@@ -64,6 +64,7 @@ import {
   Sitemap as SitemapIcon,
   BellRinging as BellRingingIcon,
   ReportAnalytics as ReportAnalyticsIcon,
+  Cpu as CpuIcon,
 } from '@vicons/tabler'
 
 const osTheme = useOsTheme()
@@ -73,6 +74,7 @@ const navItems = [
   { to: '/factory-map', label: '廠區地圖', icon: SitemapIcon },
   { to: '/alarms', label: '告警中心', icon: BellRingingIcon },
   { to: '/analytics', label: '營運分析', icon: ReportAnalyticsIcon },
+  { to: '/ai-insights', label: 'AI 洞察', icon: CpuIcon },
 ]
 
 const isDark = computed(() =>
@@ -254,7 +256,7 @@ body {
   border-radius: 12px;
 }
 
-@media (max-width: 900px) {
+@media (max-width: 1120px) {
   .brand-subtitle,
   .nav-link span {
     display: none;
