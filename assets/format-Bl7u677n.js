@@ -1,0 +1,1 @@
+function e(e){return[Math.floor(e/3600),Math.floor(e%3600/60),e%60].map(e=>String(e).padStart(2,`0`)).join(`:`)}function t(e){return e.toLocaleString(`en-US`)}function n(e){return{running:`success`,idle:`warning`,error:`error`,maintenance:`default`}[e]}function r(e){return{running:`運轉中`,idle:`待機`,error:`停機`,maintenance:`保養`}[e]}export{n as i,e as n,r,t};
