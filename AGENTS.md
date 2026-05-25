@@ -1,5 +1,15 @@
 # AGENTS.md
 
+本檔案是 Codex / coding agent 的協作規則，不是對外展示文件。
+
+對外 README 請維持為面試作品展示入口；完整專案指南請維護在 `PROJECT_GUIDE.md`。
+
+## 文件分工
+
+- `README.md`：GitHub 首頁與面試官閱讀入口，重點是作品價值、頁面導覽、技術棧、啟動與部署方式。
+- `PROJECT_GUIDE.md`：目前專案最新完整指南，整合功能、架構、頁面、展示話術、部署與後續優化項目。
+- `AGENTS.md`：本檔，記錄 coding agent 需要遵守的專案規則、執行限制與階段紀錄。
+
 ## 專案概述
 
 FabOps Dashboard 是一個使用 Vue 3 + TypeScript 打造的半導體智慧製造營運平台。畫面呈現即時設備健康狀態、生產 KPI、瓶頸分析、製程控制圖表、廠區 Digital Twin、告警中心、營運分析報表與 AI 異常偵測，定位為可用於面試展示的企業級前端作品。
@@ -26,47 +36,10 @@ FabOps Dashboard 是一個使用 Vue 3 + TypeScript 打造的半導體智慧製�
 - `src/views/AiInsightsView.vue`：AI 洞察頁，包含 anomaly score、RUL、模型信心值、異常貢獻因子、預測維修佇列與面試展示敘事。
 - `src/stores/equipment.ts`：Pinia store、demo 機台資料、衍生指標、realtime 狀態與 telemetry 模擬。
 - `src/types/equipment.ts`：機台、KPI、log、stream、time series、WebSocket 狀態等 domain type。
-- `src/components/KpiCard.vue`：KPI 卡片元件。
-- `src/components/MachineStatus.vue`：設備健康狀態卡片。
-- `src/components/EventLog.vue`：即時事件串流。
-- `src/components/*Chart.vue`：ECharts 圖表元件。
 - `src/composables/useWebSocket.ts`：WebSocket adapter，包含 demo simulation fallback、heartbeat、latency 計算與 auto reconnect 狀態。
 - `src/composables/useSSE.ts`：SSE event stream adapter。
 - `src/router/index.ts`：route-level lazy loading。
 - `vite.config.ts`：路徑 alias、dev server、GitHub Pages base path 與 manual chunk 策略。
-
-## 目前 UI 結構
-
-- Sticky header：品牌名稱、展示資料 badge、theme toggle、頁面導覽。
-- 即時總覽 `/`：Fab command center、realtime system 狀態面板、KPI cards、瓶頸與行動建議、charts、設備健康矩陣、事件串流。
-- 廠區地圖 `/factory-map`：Digital Twin hero、生產流程、區域設備地圖、選取設備詳情、異常高亮。
-- 告警中心 `/alarms`：告警統計、搜尋與篩選、告警列表、事件時間線、處置建議。
-- 營運分析 `/analytics`：報表區間切換、OEE / WPH 趨勢、良率損失拆解、停機 Pareto、設備排名、班報摘要。
-- AI 洞察 `/ai-insights`：AI 風險總覽、設備異常分數排序、RUL、異常貢獻因子、預測維修佇列、展示敘事。
-
-## Theme 與 UI 色彩規則
-
-- Light/dark theme 的主控在 `src/App.vue`。
-- `app-shell` 會依狀態套用 `.app-shell--light` 或 `.app-shell--dark`。
-- 共用色票使用 CSS variables，例如：
-  - `--app-bg`
-  - `--app-surface`
-  - `--app-surface-strong`
-  - `--app-surface-soft`
-  - `--app-border`
-  - `--app-border-strong`
-  - `--app-shadow`
-  - `--app-header-bg`
-  - `--app-header-text`
-  - `--app-hero-bg`
-  - `--app-hero-text`
-  - `--app-hero-muted`
-  - `--app-hero-eyebrow`
-  - `--app-chip-bg`
-  - `--app-chip-text`
-- Header 背景與文字必須使用 `--app-header-*` 變數，確保 theme toggle 後仍有足夠對比。
-- Dashboard、Digital Twin、Alarm Center、Analytics 與 AI Insights 都應使用 `--app-surface*`、`--app-border*`、`--app-shadow`。
-- Dashboard 圖表的 `isDark` 必須跟手動 theme toggle 同步，不應只依賴 OS theme。
 
 ## UI 維護原則
 
@@ -75,8 +48,9 @@ FabOps Dashboard 是一個使用 Vue 3 + TypeScript 打造的半導體智慧製�
 - 介面文字以中文化或現場實務用語為主；保留必要英文縮寫，例如 Fab、Tool、OEE、WPH、WIP、Recipe、Dispatch、RUL。
 - Card 只用於重複型 widget 或需要明確框架的 dashboard module。
 - 保持 desktop、tablet 與 mobile 的 responsive 行為。
-- 避免過度裝飾；視覺重點應來自資料階層、圖表、狀態指標、告警優先級、AI 風險與營運摘要。
 - 文字與背景對比要同時檢查 light mode 與 dark mode。
+- Dashboard、Digital Twin、Alarm Center、Analytics 與 AI Insights 都應使用 `--app-surface*`、`--app-border*`、`--app-shadow`。
+- Header 背景與文字必須使用 `--app-header-*` 變數，確保 theme toggle 後仍有足夠對比。
 
 ## 工程維護原則
 
@@ -88,10 +62,33 @@ FabOps Dashboard 是一個使用 Vue 3 + TypeScript 打造的半導體智慧製�
 - `useWebSocket.ts` 的 demo mode 必須持續可用，沒有外部 WebSocket server 時仍要能展示 heartbeat 與 latency。
 - 保留 `src/router/index.ts` 的 route-level lazy loading。
 - 保留 Vite manual chunks：`vue-vendor`、`ui`、`charts`、`zrender`，除非有量測結果支持調整。
-- GitHub Pages 部署使用 `gh-pages` 分支；build 時以 `GITHUB_PAGES` 判斷 Vite base path，repo path 為 `/FabOps_Dashboard/`。
+- GitHub Pages 部署使用 `gh-pages` 分支；build 時需設定 `GITHUB_PAGES=true` 讓 Vite base path 套用 `/FabOps_Dashboard/`。
 - 不要讓專案依賴後端才能展示；demo mode 必須在沒有外部服務時仍可運作。
-- 完成 UI 或 TypeScript 修改後，至少執行 `npm run build`。
+
+## 執行限制
+
+- 除非使用者要求，否則不要自動執行型別檢查或測試，例如 `npm run type-check`、`npm run test`、`npm run build`。
+- 若使用者明確要求部署、驗證 production output，才可以執行 `npm run build`。
 - 每完成一個階段功能後，必須更新 `AGENTS.md`，commit 說明本階段完成內容，並推送到 `origin/main`。
+- 不要把使用者未要求的工作樹變更一起 stage 或 commit。
+
+## GitHub Pages 部署備註
+
+目前採 `gh-pages` 分支部署，不使用 GitHub CLI，也不依賴 GitHub Actions workflow。
+
+```powershell
+$env:GITHUB_PAGES='true'
+npm run build
+New-Item -ItemType File -Path dist/.nojekyll -Force
+
+cd dist
+git init
+git checkout -b gh-pages
+git add .
+git commit -m "deploy: GitHub Pages"
+git remote add origin git@github.com:seanhong1215/FabOps_Dashboard.git
+git push -f origin gh-pages
+```
 
 ## 階段紀錄
 
@@ -99,22 +96,12 @@ FabOps Dashboard 是一個使用 Vue 3 + TypeScript 打造的半導體智慧製�
 - `docs: 更新專案協作指引`：重建可讀的專案協作規範。
 - `feat: 新增營運分析頁`：新增 `/analytics` 營運分析頁、header 導覽項、報表 KPI、OEE / WPH 趨勢、良率損失、停機 Pareto、設備排名與班報摘要。
 - `feat: 強化即時串流狀態監控`：新增 stream mode、ready state、heartbeat status、latency、reconnect attempts、last heartbeat，並在 Dashboard 顯示即時串流健康狀態。
-- 本階段：新增 `/ai-insights` AI 洞察頁，將作品從監控 dashboard 提升為智慧製造平台，展示 anomaly score、RUL、異常貢獻因子、預測維修與面試敘事。
+- `feat: 新增 AI 智慧洞察頁`：新增 `/ai-insights`，將作品從監控 dashboard 提升為智慧製造平台。
 - `feat: 優化即時串流面板並升級 Vite`：優化首頁 realtime stream-grid 視覺，將純文字區塊升級為狀態卡片；並因安全性需求升級 Vite 至 8.x。
-- 本階段：重寫 README 面試展示說明，補上頁面截圖說明、架構圖、展示講法、GitHub Pages demo URL，並改為使用 `gh-pages` 分支部署。
-
-## 常用命令
-
-```bash
-npm run dev
-npm run type-check
-npm run build
-npm run preview
-```
+- `docs: 完善作品展示並設定 GitHub Pages`：重寫 README 面試展示說明，補上頁面截圖說明、架構圖、展示講法與 GitHub Pages demo URL。
+- `docs: 改用 gh-pages 分支部署`：移除 GitHub Actions Pages workflow，改採 `gh-pages` 分支部署。
+- 本階段：區分 `README.md`、`AGENTS.md` 與 `PROJECT_GUIDE.md` 的文件角色，新增目前專案最新整合指南。
 
 ## 已知 Build 提醒
 
 執行 build 時，Vite / Rolldown 可能顯示 plugin timing 或 chunk size warning。這些目前不會阻擋 production output；若要處理，優先檢查 `charts` chunk 與圖表套件切分策略。
-
-## 禁止執行的內容
-除非我要求，否則不要自動執行型別檢查或測試（例如 npm run typecheck / npm run test / npm run build）
