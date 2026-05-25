@@ -1,159 +1,243 @@
 # FabOps Dashboard
 
-FabOps Dashboard is an interview-ready semiconductor fab operations cockpit. It presents realtime tool health, production KPIs, bottleneck analysis, process trends, and incident activity in a polished Vue 3 dashboard.
+半導體智慧製造營運平台 / Smart Manufacturing Operations Platform
 
-The current UI is designed for a shift lead or equipment engineer who needs to understand line health at a glance and decide what to do next.
+FabOps Dashboard 是一個以 **中科半導體廠務與設備營運情境** 為核心設計的 Vue 3 前端作品。它不是一般靜態 dashboard，而是模擬值班主管與設備工程師在 Fab 現場會使用的營運系統：即時監控、廠區 Digital Twin、告警處置、營運分析與 AI 風險洞察。
 
-## Architecture Summary
+> 作品目標：在面試時展現 Vue 3 + TypeScript 工程能力、即時資料流設計、工業場景 UI/UX、智慧製造 domain 理解，以及可展示的企業級前端完成度。
 
-This frontend is a Vue 3 + Vite single-page dashboard. The app is currently demo-first: it can run without the backend because `useWebSocket()` starts an in-browser telemetry simulation when no URL is provided.
+## Live Demo
 
-```text
-src/main.ts
-  `- createApp(App).use(createPinia()).use(router)
-
-src/App.vue
-  |- Naive UI config provider
-  |- zhTW/dateZhTW locale
-  |- light/dark theme toggle
-  `- router-view
-
-src/router/index.ts
-  `- / -> lazy-loaded DashboardView.vue
-
-src/views/DashboardView.vue
-  |- useEquipmentStore()
-  |- useWebSocket()
-  |- useSSE()
-  `- dashboard sections and component composition
-
-src/stores/equipment.ts
-  |- machines / kpi / time series / logs / wsConnected / lastUpdated
-  |- computed metrics: runningCount, errorCount, totalQueue, fabHealth, wphByMachine, bottleneck
-  `- actions: applyWsUpdate, simulateTick, addLog
-```
-
-## Data Flow
-
-Default demo mode:
+GitHub Pages：
 
 ```text
-DashboardView.vue
-  `- useWebSocket()
-       `- startSimulation()
-            |- store.simulateTick()
-            `- store.addLog()
-
-equipment store
-  `- reactive state + computed metrics
-
-components
-  `- receive store data through props and render UI
+https://seanhong1215.github.io/FabOps_Dashboard/
 ```
 
-Backend-connected mode:
+本專案支援 demo mode，不需要後端服務也能展示即時 telemetry、告警、圖表與 AI 風險分析。
 
-```ts
-useWebSocket('ws://localhost:3000/ws/equipment')
-useSSE('http://localhost:3000/events/stream')
+## 面試展示重點
+
+1. **即時營運監控**
+   - Fab health score
+   - OEE / WPH / Yield / CVD temperature
+   - WebSocket stream mode、heartbeat、latency、reconnect attempts
+
+2. **廠區 Digital Twin**
+   - 生產流程站點
+   - 區域設備地圖
+   - 異常設備高亮
+   - 點選設備查看健康狀態與處置建議
+
+3. **告警中心**
+   - 高 / 中 / 低優先級
+   - 未處理 / 已確認狀態
+   - 搜尋與篩選
+   - 告警時間線與建議處置
+
+4. **營運分析**
+   - 日報 / 週報 / 月報切換
+   - OEE / WPH 趨勢
+   - 良率損失拆解
+   - 停機 Pareto
+   - 設備稼動與產出排名
+
+5. **AI 智慧洞察**
+   - Anomaly score
+   - RUL 剩餘可用壽命
+   - 異常貢獻因子
+   - 預測維修佇列
+   - 面試敘事：即時監控 → AI 分析 → 現場處置 → 營運回顧
+
+## 頁面截圖說明
+
+> 截圖建議尺寸：Desktop 1440px 以上，並至少補一張 mobile 或 tablet 視圖。正式投遞履歷時，建議將截圖放在 `docs/screenshots/` 並更新下列表格圖片路徑。
+
+| 頁面 | 路徑 | 展示重點 | 建議截圖 |
+| --- | --- | --- | --- |
+| 即時總覽 | `/` | Fab health、KPI、即時串流狀態、瓶頸設備、圖表與設備矩陣 | `docs/screenshots/dashboard.png` |
+| 廠區地圖 | `/factory-map` | Digital Twin、生產流程、設備位置、異常高亮、設備詳情 | `docs/screenshots/factory-map.png` |
+| 告警中心 | `/alarms` | 告警優先級、搜尋篩選、時間線、處置建議 | `docs/screenshots/alarms.png` |
+| 營運分析 | `/analytics` | OEE / WPH 趨勢、良率損失、停機 Pareto、班報摘要 | `docs/screenshots/analytics.png` |
+| AI 洞察 | `/ai-insights` | anomaly score、RUL、預測維修、異常貢獻因子 | `docs/screenshots/ai-insights.png` |
+
+## 系統架構
+
+```text
+Machine Sensor / PLC / Tool Telemetry
+        |
+        v
+MQTT / OPC UA / Modbus Gateway
+        |
+        v
+Node.js WebSocket / SSE Gateway
+        |
+        v
+Vue 3 Frontend
+        |
+        +-- Pinia equipment store
+        +-- WebSocket composable with demo fallback
+        +-- ECharts visualization
+        +-- Naive UI enterprise interface
 ```
 
-The backend project is expected at `../fab-backend` and provides:
+目前專案是前端 demo-first 設計。`useWebSocket()` 在沒有傳入 URL 時會啟動 in-browser telemetry simulation，確保沒有後端服務也能完整展示。
 
-- `WS /ws/equipment` for telemetry payloads.
-- `GET /events/stream` for incident events.
-- `GET /api/machines` for machine snapshots.
-- `POST /api/events/emit` for manual event push.
-- `GET /health` for server health.
+## 使用者情境
 
-## Current UI
+目標使用者是：
 
-- Command center hero with realtime stream status, Fab health score, running/down tool counts, and queued lot total.
-- KPI cards for Overall OEE, Line WPH, First Pass Yield, and Avg CVD Temperature.
-- Active bottleneck panel that identifies the constrained tool, throughput gap, queue impact, owner, and status.
-- Shift focus panel with recommended next actions for operations triage.
-- Process-control charts for CVD chamber temperature, WPH by tool, yield split, chamber pressure, and process gas flow.
-- Equipment health matrix showing each tool's status, recipe, owner, WPH target progress, availability, utilization, queue, wafer count, signals, and active incident.
-- Live incident stream with severity, timestamp, machine id, and simulated event messages.
-- Sticky application shell with brand identity, demo-data badge, and light/dark theme toggle.
+- 值班主管：快速判讀 Fab health、瓶頸與告警優先級。
+- 設備工程師：查看 tool status、downtime、queue impact 與維修建議。
+- 製程值班人員：觀察 CVD 溫度、壓力、氣體流量與 yield drift。
+- 面試官：評估前端工程、資料視覺化、即時系統、domain modeling 與產品思維。
 
-## Engineering Highlights
+## 功能模組
 
-- Vue 3 Composition API with strict TypeScript.
-- Pinia store models realtime fab state, derived metrics, bottleneck calculation, and demo telemetry.
-- WebSocket and SSE composables are ready for real endpoints, while the app runs fully in demo mode without a backend.
-- ECharts components are isolated and reusable for line, bar, donut, and dual-axis charts.
-- Route-level lazy loading keeps page code out of the initial router bundle.
-- Vite manual chunks split Vue, Naive UI, ECharts, and zrender into cache-friendly production assets.
-- Responsive layout supports desktop review and mobile inspection.
+### 即時總覽 Dashboard
 
-## Tech Stack
+- Fab health score
+- Realtime stream health panel
+- KPI cards
+- Active bottleneck
+- Recommended next actions
+- Process-control charts
+- Equipment health matrix
+- Live incident stream
 
-- Vue 3 + Composition API
-- TypeScript
+### Factory Map / Digital Twin
+
+- 生產流程站點
+- 區域設備地圖
+- 設備點選詳情
+- 異常設備高亮
+- 站點風險與 WIP queue
+
+### Alarm Center
+
+- 告警 KPI
+- 優先級與處理狀態
+- 搜尋與篩選
+- 告警清單
+- 事件時間線
+- 處置建議
+
+### Analytics
+
+- 日報 / 週報 / 月報
+- OEE / WPH 趨勢
+- Yield loss attribution
+- Downtime Pareto
+- Equipment ranking
+- Management brief
+
+### AI Insights
+
+- Rule-based anomaly scoring
+- Remaining Useful Life demo
+- Risk ranking
+- Signal contribution factors
+- Predictive maintenance queue
+
+> AI Insights 是 rule-based demo，用於展示智慧製造決策層的前端呈現方式。未來可替換為後端 ML inference API。
+
+## 技術棧
+
+- Vue 3 Composition API
+- TypeScript strict mode
 - Pinia
-- Vue Router
+- Vue Router lazy loading
 - Naive UI
-- Apache ECharts + vue-echarts
-- Vite
+- Apache ECharts + `vue-echarts`
+- Vite 8
+- GitHub Pages deployment
 
-## Project Structure
+## 專案結構
 
 ```text
 src/
-  components/        KPI cards, machine cards, event log, and chart widgets
+  components/        KPI cards, machine cards, event log, chart widgets
   composables/       WebSocket and SSE stream adapters
   router/            Lazy-loaded route definitions
   stores/            Pinia equipment store and demo telemetry simulation
-  types/             Machine, KPI, log, stream, and chart data contracts
+  types/             Machine, KPI, log, stream, realtime status contracts
   utils/             Formatting and machine status helpers
-  views/             Dashboard page composition
-  App.vue            Sticky app shell, branding, and theme control
+  views/             Dashboard, Factory Map, Alarms, Analytics, AI Insights
+  App.vue            App shell, navigation, theme control
   main.ts            Vue app bootstrap
 ```
 
-## Feature Iteration Notes
+## 工程亮點
 
-Before adding a new frontend feature, check the affected layer:
+- Route-level lazy loading：每個頁面獨立載入。
+- Demo-first realtime design：沒有後端也能展示完整流程。
+- WebSocket adapter：包含 heartbeat、latency、reconnect attempts 與 demo fallback。
+- Pinia domain store：集中設備、KPI、series、logs、realtime status 與衍生指標。
+- ECharts components：圖表邏輯隔離在 chart components 中。
+- Enterprise UI：使用 Naive UI、light/dark theme variables 與高資訊密度 dashboard layout。
+- Vite manual chunks：拆分 `vue-vendor`、`ui`、`charts`、`zrender`。
 
-- Domain shape changes belong in `src/types/equipment.ts` first.
-- Shared realtime state belongs in `src/stores/equipment.ts`.
-- Transport logic belongs in `src/composables/useWebSocket.ts`, `src/composables/useSSE.ts`, or a new composable with the same style.
-- New pages should be added through `src/router/index.ts` with route-level lazy loading.
-- Dashboard composition belongs in `src/views/DashboardView.vue`.
-- Reusable UI belongs in `src/components/`.
-- Formatting and status mapping belong in `src/utils/format.ts`.
-
-When a feature depends on backend data, also check `../fab-backend/src/types/index.ts`, `../fab-backend/src/routes/`, and `../fab-backend/src/mock/equipmentSimulator.ts` so frontend and backend payloads stay aligned.
-
-Use incremental changes for future work: list added files, list modified files, and identify the exact code blocks being changed instead of replacing whole existing files.
-
-## Development
+## 本機開發
 
 ```bash
 npm install
 npm run dev
 ```
 
-Open the local app:
+開啟：
 
 ```text
 http://127.0.0.1:5173/
 ```
 
-Production build:
+Production build：
 
 ```bash
 npm run build
 ```
 
-## Production Bundle Strategy
+Preview：
 
-The Vite build is configured to generate separate chunks for major vendor groups:
+```bash
+npm run preview
+```
 
-- `vue-vendor`: Vue, Vue Router, and Pinia
-- `ui`: Naive UI and icon dependencies
-- `charts`: ECharts and vue-echarts
-- `zrender`: ECharts rendering engine
+## GitHub Pages 部署
 
-This keeps the initial app shell small and improves browser caching when dashboard business logic changes.
+本專案使用 GitHub Actions 部署到 GitHub Pages。
+
+部署流程：
+
+```text
+push main
+  -> npm ci
+  -> npm run build
+  -> upload dist
+  -> deploy GitHub Pages
+```
+
+Vite base path 已設定為：
+
+```ts
+base: process.env.GITHUB_ACTIONS ? '/FabOps_Dashboard/' : '/'
+```
+
+## 面試講解範例
+
+可以用下面順序展示：
+
+1. 先開首頁說明 Fab 現場需要即時監控設備健康、KPI 與瓶頸。
+2. 指出 realtime stream panel，說明 heartbeat、latency、reconnect attempts 與 demo fallback。
+3. 切到 Factory Map，說明 Digital Twin 如何定位異常設備與流程影響。
+4. 切到 AI Insights，說明 anomaly score、RUL 與預測維修建議。
+5. 切到 Alarm Center，說明現場如何追蹤告警優先級與處置。
+6. 切到 Analytics，說明主管如何用 OEE、良率、停機與排名做班報回顧。
+
+## 後續可擴充
+
+- 接入真實 WebSocket / SSE backend
+- 建立 MQTT / OPC UA gateway demo
+- 將 rule-based AI 替換為 ML inference API
+- 加入 GitHub Actions build status badge
+- 加入 ESLint / Prettier / Vitest
+- 補正式截圖與部署連結預覽圖

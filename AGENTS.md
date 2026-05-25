@@ -33,7 +33,8 @@ FabOps Dashboard 是一個使用 Vue 3 + TypeScript 打造的半導體智慧製�
 - `src/composables/useWebSocket.ts`：WebSocket adapter，包含 demo simulation fallback、heartbeat、latency 計算與 auto reconnect 狀態。
 - `src/composables/useSSE.ts`：SSE event stream adapter。
 - `src/router/index.ts`：route-level lazy loading。
-- `vite.config.ts`：路徑 alias、dev server 與 manual chunk 策略。
+- `vite.config.ts`：路徑 alias、dev server、GitHub Pages base path 與 manual chunk 策略。
+- `.github/workflows/deploy-pages.yml`：GitHub Pages 部署 workflow。
 
 ## 目前 UI 結構
 
@@ -88,6 +89,7 @@ FabOps Dashboard 是一個使用 Vue 3 + TypeScript 打造的半導體智慧製�
 - `useWebSocket.ts` 的 demo mode 必須持續可用，沒有外部 WebSocket server 時仍要能展示 heartbeat 與 latency。
 - 保留 `src/router/index.ts` 的 route-level lazy loading。
 - 保留 Vite manual chunks：`vue-vendor`、`ui`、`charts`、`zrender`，除非有量測結果支持調整。
+- GitHub Pages 部署使用 `GITHUB_ACTIONS` 判斷 Vite base path，repo path 為 `/FabOps_Dashboard/`。
 - 不要讓專案依賴後端才能展示；demo mode 必須在沒有外部服務時仍可運作。
 - 完成 UI 或 TypeScript 修改後，至少執行 `npm run build`。
 - 每完成一個階段功能後，必須更新 `AGENTS.md`，commit 說明本階段完成內容，並推送到 `origin/main`。
@@ -99,7 +101,8 @@ FabOps Dashboard 是一個使用 Vue 3 + TypeScript 打造的半導體智慧製�
 - `feat: 新增營運分析頁`：新增 `/analytics` 營運分析頁、header 導覽項、報表 KPI、OEE / WPH 趨勢、良率損失、停機 Pareto、設備排名與班報摘要。
 - `feat: 強化即時串流狀態監控`：新增 stream mode、ready state、heartbeat status、latency、reconnect attempts、last heartbeat，並在 Dashboard 顯示即時串流健康狀態。
 - 本階段：新增 `/ai-insights` AI 洞察頁，將作品從監控 dashboard 提升為智慧製造平台，展示 anomaly score、RUL、異常貢獻因子、預測維修與面試敘事。
-- 本階段：優化首頁 realtime stream-grid 視覺，將純文字區塊升級為狀態卡片；並因安全性需求升級 Vite 至 8.x。
+- `feat: 優化即時串流面板並升級 Vite`：優化首頁 realtime stream-grid 視覺，將純文字區塊升級為狀態卡片；並因安全性需求升級 Vite 至 8.x。
+- 本階段：重寫 README 面試展示說明，補上頁面截圖說明、架構圖、展示講法、GitHub Pages demo URL，並新增 Pages deploy workflow。
 
 ## 常用命令
 
