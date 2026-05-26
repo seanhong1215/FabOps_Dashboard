@@ -62,6 +62,17 @@ async function bootstrap() {
   await fastify.register(websocketRoutes)
   await fastify.register(sseRoutes)
 
+  fastify.get('/', async () => ({
+    service: 'fab-backend',
+    status: 'ok',
+    endpoints: {
+      health: '/health',
+      machines: '/api/machines',
+      events: '/events/stream',
+      websocket: '/ws/equipment',
+    },
+  }))
+
   // ── 健康檢查 ─────────────────────────────
   fastify.get('/health', async () => ({
     status: 'ok',
