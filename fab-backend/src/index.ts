@@ -46,7 +46,7 @@ async function bootstrap() {
         cb(null, true)
       } else {
         fastify.log.warn(`[CORS] blocked origin: ${origin}`)
-        cb(new Error(`CORS blocked: ${origin}`), false)
+        cb(null, false)
       }
     },
     methods: ['GET', 'POST', 'OPTIONS'],

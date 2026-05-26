@@ -5,6 +5,10 @@ const LOCAL_ORIGINS = [
   'http://127.0.0.1:4173',
 ]
 
+const PUBLIC_ORIGINS = [
+  'https://seanhong1215.github.io',
+]
+
 function parseOrigins(value = ''): string[] {
   return value
     .split(',')
@@ -14,6 +18,7 @@ function parseOrigins(value = ''): string[] {
 
 export const ALLOWED_ORIGINS = new Set([
   ...LOCAL_ORIGINS,
+  ...PUBLIC_ORIGINS,
   ...parseOrigins(process.env.ALLOWED_ORIGINS),
 ])
 
