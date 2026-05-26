@@ -1,4 +1,4 @@
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, unref, watch, type MaybeRef } from 'vue'
 import { useEquipmentStore } from '@/stores/equipment'
 import type { LogLevel } from '@/types/equipment'
 
@@ -8,18 +8,27 @@ interface SsePayload {
   machineId?: string
 }
 
-export function useSSE(url = '') {
+export function useSSE(url: MaybeRef<string> = '') {
   const store = useEquipmentStore()
   const connected = ref(false)
   let source: EventSource | null = null
 
-  function connect() {
-    if (!url) return
+  function disconnect() {
+    source?.close()
+    source = null
+    connected.value = false
+    store.setSseConnected(false)
+  }
 
-    source = new EventSource(url)
+  function connect(targetUrl: string) {
+    disconnect()
+    if (!targetUrl) return
+
+    source = new EventSource(targetUrl)
 
     source.onopen = () => {
       connected.value = true
+      store.setSseConnected(true)
       store.addLog('ok', 'SSE event stream connected')
     }
 
@@ -34,15 +43,22 @@ export function useSSE(url = '') {
 
     source.onerror = () => {
       connected.value = false
+      store.setSseConnected(false)
       store.addLog('warn', 'SSE stream disconnected')
     }
   }
 
-  onMounted(connect)
+  onMounted(() => connect(unref(url)))
+
+  watch(
+    () => unref(url),
+    nextUrl => {
+      connect(nextUrl)
+    }
+  )
 
   onUnmounted(() => {
-    source?.close()
-    connected.value = false
+    disconnect()
   })
 
   return { connected }

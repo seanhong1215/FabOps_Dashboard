@@ -1,8 +1,20 @@
-import { ref, onMounted, onUnmounted } from 'vue'
-import type { WsMessage, WsReadyState } from '@/types/equipment'
+import { ref, onMounted, onUnmounted, unref, watch, type MaybeRef } from 'vue'
+import type { WsMessage, WsReadyState, WsSnapshotMessage, WsTelemetryMessage } from '@/types/equipment'
 import { useEquipmentStore } from '@/stores/equipment'
 
-export function useWebSocket(url = '') {
+function isSnapshotMessage(data: WsMessage): data is WsSnapshotMessage {
+  return 'type' in data && data.type === 'SNAPSHOT' && Array.isArray(data.data)
+}
+
+function isSystemMessage(data: WsMessage): data is Extract<WsMessage, { type: 'SYSTEM' }> {
+  return 'type' in data && data.type === 'SYSTEM'
+}
+
+function isTelemetryMessage(data: WsMessage): data is WsTelemetryMessage {
+  return 'machineId' in data && typeof data.machineId === 'string'
+}
+
+export function useWebSocket(url: MaybeRef<string> = '') {
   const store = useEquipmentStore()
   const readyState = ref<WsReadyState>('connecting')
   const lastMessage = ref('')
@@ -10,14 +22,17 @@ export function useWebSocket(url = '') {
   let simulateTimer: ReturnType<typeof setInterval> | null = null
   let heartbeatTimer: ReturnType<typeof setInterval> | null = null
   let reconnectTimer: ReturnType<typeof setTimeout> | null = null
+  let staleTimer: ReturnType<typeof setInterval> | null = null
   let reconnectAttempts = 0
   let isDisposed = false
 
-  function connectReal() {
+  function connectReal(targetUrl: string) {
+    stopDemo()
+    closeSocket()
     store.setStreamMode('live')
     readyState.value = reconnectAttempts > 0 ? 'reconnecting' : 'connecting'
     store.setRealtimeState(readyState.value, false)
-    ws = new WebSocket(url)
+    ws = new WebSocket(targetUrl)
 
     ws.onopen = () => {
       readyState.value = 'open'
@@ -31,10 +46,26 @@ export function useWebSocket(url = '') {
       lastMessage.value = event.data
       try {
         const data = JSON.parse(event.data as string) as WsMessage
-        const timestamp = typeof data.timestamp === 'number' ? data.timestamp : Date.now()
-        store.recordHeartbeat(Date.now() - timestamp)
-        store.applyWsUpdate(data.machineId, data)
-        store.simulateTick()
+        if (isSnapshotMessage(data)) {
+          store.applySnapshot(data.data)
+          store.addLog('ok', `Snapshot synchronized: ${data.data.length} tools`)
+          return
+        }
+
+        if (isSystemMessage(data)) {
+          store.recordHeartbeat(Date.now() - data.timestamp)
+          store.addLog(data.level ?? 'ok', data.message)
+          return
+        }
+
+        if (isTelemetryMessage(data)) {
+          const timestamp = typeof data.timestamp === 'number' ? data.timestamp : Date.now()
+          store.recordHeartbeat(Date.now() - timestamp)
+          store.applyTelemetryUpdate(data)
+          return
+        }
+
+        store.addLog('warn', `Ignored unsupported WebSocket payload: ${event.data}`)
       } catch {
         store.addLog('warn', `Ignored malformed WebSocket payload: ${event.data}`)
       }
@@ -48,7 +79,7 @@ export function useWebSocket(url = '') {
       store.setRealtimeState('reconnecting', false)
       store.setReconnectAttempts(reconnectAttempts)
       store.addLog('warn', 'WebSocket closed. Reconnecting in 3 seconds.')
-      reconnectTimer = setTimeout(connectReal, 3000)
+      reconnectTimer = setTimeout(() => connectReal(targetUrl), 3000)
     }
 
     ws.onerror = () => {
@@ -77,6 +108,15 @@ export function useWebSocket(url = '') {
     heartbeatTimer = null
   }
 
+  function closeSocket() {
+    stopHeartbeat()
+    if (reconnectTimer) clearTimeout(reconnectTimer)
+    reconnectTimer = null
+    const current = ws
+    ws = null
+    current?.close()
+  }
+
   const demoLogs = [
     { level: 'ok' as const, msg: 'CVD-01 process window stable after gas flow correction', machineId: 'CVD-01' },
     { level: 'warn' as const, msg: 'LITHO-02 overlay drift exceeds guard band by 0.3 nm', machineId: 'LITHO-02' },
@@ -92,6 +132,8 @@ export function useWebSocket(url = '') {
   let tickCount = 0
 
   function startSimulation() {
+    closeSocket()
+    stopDemo()
     store.setStreamMode('demo')
     readyState.value = 'open'
     store.setRealtimeState('open', true)
@@ -113,28 +155,56 @@ export function useWebSocket(url = '') {
     }, 2000)
   }
 
-  onMounted(() => {
-    if (url) {
-      connectReal()
+  function stopDemo() {
+    if (simulateTimer) clearInterval(simulateTimer)
+    simulateTimer = null
+  }
+
+  function startStaleMonitor() {
+    if (staleTimer) return
+    staleTimer = setInterval(() => {
+      store.markStaleMachines()
+    }, 3000)
+  }
+
+  function connect(targetUrl: string) {
+    reconnectAttempts = 0
+    store.setReconnectAttempts(0)
+    if (targetUrl) {
+      connectReal(targetUrl)
     } else {
       startSimulation()
     }
+  }
+
+  onMounted(() => {
+    isDisposed = false
+    startStaleMonitor()
+    connect(unref(url))
   })
+
+  watch(
+    () => unref(url),
+    nextUrl => {
+      if (isDisposed) return
+      disconnect()
+      isDisposed = false
+      connect(nextUrl)
+    }
+  )
 
   onUnmounted(() => {
     isDisposed = true
-    ws?.close()
-    if (simulateTimer) clearInterval(simulateTimer)
-    if (reconnectTimer) clearTimeout(reconnectTimer)
-    stopHeartbeat()
+    closeSocket()
+    stopDemo()
+    if (staleTimer) clearInterval(staleTimer)
+    staleTimer = null
   })
 
   function disconnect() {
     isDisposed = true
-    ws?.close()
-    if (simulateTimer) clearInterval(simulateTimer)
-    if (reconnectTimer) clearTimeout(reconnectTimer)
-    stopHeartbeat()
+    closeSocket()
+    stopDemo()
     store.setRealtimeState('closed', false)
     readyState.value = 'closed'
   }

@@ -10,6 +10,13 @@
       </n-tag>
     </div>
 
+    <div class="sync-row">
+      <n-tag :type="dataQualityType" size="small" round>
+        {{ dataQualityLabel }}
+      </n-tag>
+      <span>最後同步 {{ lastSeenLabel }}</span>
+    </div>
+
     <div class="throughput">
       <div>
         <div class="metric-label">產出 WPH</div>
@@ -72,7 +79,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { NCard, NProgress, NTag, NText } from 'naive-ui'
-import type { Machine } from '@/types/equipment'
+import type { DataQuality, Machine } from '@/types/equipment'
 import { statusToTagType, statusLabel, formatDowntime, formatCount } from '@/utils/format'
 
 const props = defineProps<{ machine: Machine }>()
@@ -85,6 +92,28 @@ const progressColor = computed(() => {
   if (props.machine.status === 'error') return '#dc2626'
   if (throughputPct.value < 70) return '#d97706'
   return '#16a34a'
+})
+
+const quality = computed<DataQuality>(() => props.machine.dataQuality ?? 'offline')
+
+const dataQualityLabel = computed(() => {
+  const map: Record<DataQuality, string> = {
+    fresh: '資料新鮮',
+    stale: '資料延遲',
+    offline: '資料離線',
+  }
+  return map[quality.value]
+})
+
+const dataQualityType = computed(() => {
+  if (quality.value === 'fresh') return 'success'
+  if (quality.value === 'stale') return 'warning'
+  return 'error'
+})
+
+const lastSeenLabel = computed(() => {
+  if (!props.machine.lastSeenAt) return '--:--:--'
+  return new Date(props.machine.lastSeenAt).toLocaleTimeString('en-US', { hour12: false })
 })
 </script>
 
@@ -113,9 +142,17 @@ const progressColor = computed(() => {
 .machine-meta,
 .metric-label,
 .data-point span,
-.progress-shell span {
+.progress-shell span,
+.sync-row span {
   color: var(--n-text-color-3);
   font-size: 12px;
+}
+
+.sync-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
 }
 
 .throughput {

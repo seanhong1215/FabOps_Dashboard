@@ -43,6 +43,8 @@ function translateLog(message: string): string {
   return message
     .replace('Demo realtime stream started', '展示用即時串流已啟動')
     .replace('Realtime WebSocket connected', 'WebSocket 即時串流已連線')
+    .replace('SSE event stream connected', 'SSE 事件串流已連線')
+    .replace('SSE stream disconnected', 'SSE 事件串流已中斷')
     .replace('WebSocket closed. Reconnecting in 3 seconds.', 'WebSocket 已斷線，3 秒後重新連線')
     .replace('WebSocket transport error', 'WebSocket 傳輸異常')
     .replace('CVD-01 process window stable after gas flow correction', 'CVD-01 氣體流量校正後製程視窗穩定')

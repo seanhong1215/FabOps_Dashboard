@@ -26,9 +26,18 @@ export interface Machine {
   queue: number
   errorCode?: string
   downtimeSec?: number
+  lastSeenAt?: number
+  dataQuality?: DataQuality
 }
 
-export interface WsMessage {
+export type DataQuality = 'fresh' | 'stale' | 'offline'
+
+export type MachineSnapshot = Pick<
+  Machine,
+  'id' | 'name' | 'type' | 'status' | 'wph' | 'totalWafers'
+> & Partial<Machine>
+
+export interface WsTelemetryMessage {
   machineId: string
   timestamp: number
   temperature?: number
@@ -38,6 +47,20 @@ export interface WsMessage {
   wph?: number
   yield?: number
 }
+
+export interface WsSnapshotMessage {
+  type: 'SNAPSHOT'
+  data: MachineSnapshot[]
+}
+
+export interface WsSystemMessage {
+  type: 'SYSTEM'
+  timestamp: number
+  message: string
+  level?: LogLevel
+}
+
+export type WsMessage = WsTelemetryMessage | WsSnapshotMessage | WsSystemMessage
 
 export interface TimeSeriesPoint {
   time: string

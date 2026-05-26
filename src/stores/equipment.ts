@@ -9,6 +9,8 @@ import type {
   StreamMode,
   HeartbeatStatus,
   WsReadyState,
+  WsTelemetryMessage,
+  MachineSnapshot,
 } from '@/types/equipment'
 
 const INITIAL_MACHINES: Machine[] = [
@@ -118,6 +120,8 @@ const INITIAL_MACHINES: Machine[] = [
 ]
 
 const MAX_SERIES_LENGTH = 36
+const STALE_AFTER_MS = 8_000
+const OFFLINE_AFTER_MS = 20_000
 
 function nowHMS(): string {
   return new Date().toLocaleTimeString('en-US', { hour12: false })
@@ -149,6 +153,7 @@ export const useEquipmentStore = defineStore('equipment', () => {
   const heartbeatStatus = ref<HeartbeatStatus>('offline')
   const latencyMs = ref(0)
   const lastHeartbeatAt = ref('')
+  const sseConnected = ref(false)
 
   const machineById = computed(() =>
     (id: string) => machines.value.find(m => m.id === id)
@@ -182,6 +187,7 @@ export const useEquipmentStore = defineStore('equipment', () => {
 
   const streamQuality = computed(() => {
     if (!wsConnected.value) return 'offline'
+    if (streamMode.value === 'live' && !sseConnected.value) return 'watch'
     if (heartbeatStatus.value === 'delayed' || latencyMs.value > 900) return 'watch'
     return 'healthy'
   })
@@ -190,6 +196,14 @@ export const useEquipmentStore = defineStore('equipment', () => {
     const idx = machines.value.findIndex(m => m.id === machineId)
     if (idx !== -1) {
       machines.value[idx] = { ...machines.value[idx], ...patch }
+    }
+  }
+
+  function touchMachine(machine: Machine, timestamp = Date.now()): Machine {
+    return {
+      ...machine,
+      lastSeenAt: timestamp,
+      dataQuality: 'fresh',
     }
   }
 
@@ -216,6 +230,10 @@ export const useEquipmentStore = defineStore('equipment', () => {
     streamMode.value = mode
   }
 
+  function setSseConnected(connected: boolean) {
+    sseConnected.value = connected
+  }
+
   function setRealtimeState(state: WsReadyState, connected = state === 'open') {
     readyState.value = state
     wsConnected.value = connected
@@ -234,8 +252,63 @@ export const useEquipmentStore = defineStore('equipment', () => {
     lastHeartbeatAt.value = nowHMS()
   }
 
+  function applyTelemetryUpdate(payload: WsTelemetryMessage) {
+    const timestamp = typeof payload.timestamp === 'number' ? payload.timestamp : Date.now()
+    const current = machines.value.find(m => m.id === payload.machineId)
+    if (!current) return
+
+    const patch: Partial<Machine> = {
+      temperature: payload.temperature,
+      pressure: payload.pressure,
+      flowRate: payload.flowRate,
+      rfPower: payload.rfPower,
+      wph: payload.wph,
+    }
+    applyWsUpdate(payload.machineId, touchMachine({ ...current, ...patch }, timestamp))
+
+    lastUpdated.value = nowHMS()
+    if (typeof payload.temperature === 'number') {
+      pushSeries(temperatureSeries, payload.temperature)
+      kpi.value.avgTemp = payload.temperature
+    }
+    if (typeof payload.pressure === 'number') {
+      pushSeries(pressureSeries, payload.pressure)
+    }
+    if (typeof payload.flowRate === 'number') {
+      pushSeries(flowSeries, payload.flowRate)
+    }
+
+    const runningMachines = machines.value.filter(m => m.status === 'running')
+    if (runningMachines.length > 0) {
+      kpi.value.wph = Math.round(
+        runningMachines.reduce((sum, machine) => sum + machine.wph, 0) / runningMachines.length
+      )
+    }
+  }
+
+  function applySnapshot(snapshot: MachineSnapshot[]) {
+    const timestamp = Date.now()
+    machines.value = machines.value.map(machine => {
+      const incoming = snapshot.find(item => item.id === machine.id)
+      return incoming ? touchMachine({ ...machine, ...incoming }, timestamp) : machine
+    })
+    lastUpdated.value = nowHMS()
+  }
+
+  function markStaleMachines(now = Date.now()) {
+    machines.value = machines.value.map(machine => {
+      if (!machine.lastSeenAt) return { ...machine, dataQuality: 'offline' }
+
+      const age = now - machine.lastSeenAt
+      if (age > OFFLINE_AFTER_MS) return { ...machine, dataQuality: 'offline' }
+      if (age > STALE_AFTER_MS) return { ...machine, dataQuality: 'stale' }
+      return { ...machine, dataQuality: 'fresh' }
+    })
+  }
+
   function simulateTick() {
     const now = nowHMS()
+    const timestamp = Date.now()
     lastUpdated.value = now
     wsConnected.value = true
     readyState.value = 'open'
@@ -280,6 +353,8 @@ export const useEquipmentStore = defineStore('equipment', () => {
     if (litho && litho.downtimeSec !== undefined) {
       litho.downtimeSec += 2
     }
+
+    machines.value = machines.value.map(machine => touchMachine(machine, timestamp))
   }
 
   return {
@@ -304,11 +379,16 @@ export const useEquipmentStore = defineStore('equipment', () => {
     heartbeatStatus,
     latencyMs,
     lastHeartbeatAt,
+    sseConnected,
     streamQuality,
     applyWsUpdate,
+    applyTelemetryUpdate,
+    applySnapshot,
+    markStaleMachines,
     simulateTick,
     addLog,
     setStreamMode,
+    setSseConnected,
     setRealtimeState,
     setReconnectAttempts,
     recordHeartbeat,

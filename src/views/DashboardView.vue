@@ -30,7 +30,13 @@
           <span class="section-kicker">Realtime system</span>
           <h2>即時串流健康狀態</h2>
         </div>
-        <n-tag :type="streamTagType" round>{{ streamQualityLabel }}</n-tag>
+        <div class="stream-actions">
+          <n-radio-group v-model:value="dataSource" size="small">
+            <n-radio-button value="demo">Demo</n-radio-button>
+            <n-radio-button value="live">Backend Live</n-radio-button>
+          </n-radio-group>
+          <n-tag :type="streamTagType" round>{{ streamQualityLabel }}</n-tag>
+        </div>
       </div>
 
       <div class="stream-grid">
@@ -198,12 +204,13 @@
 </template>
 
 <script setup lang="ts">
-import { computed, inject, type ComputedRef } from 'vue'
-import { NBadge, NCard, NTag, useOsTheme } from 'naive-ui'
+import { computed, inject, ref, type ComputedRef } from 'vue'
+import { NBadge, NCard, NRadioButton, NRadioGroup, NTag, useOsTheme } from 'naive-ui'
 import { useEquipmentStore } from '@/stores/equipment'
 import { useWebSocket } from '@/composables/useWebSocket'
 import { useSSE } from '@/composables/useSSE'
 import { statusLabel, statusToTagType } from '@/utils/format'
+import type { StreamMode } from '@/types/equipment'
 import KpiCard from '@/components/KpiCard.vue'
 import MachineStatus from '@/components/MachineStatus.vue'
 import TempChart from '@/components/TempChart.vue'
@@ -218,7 +225,19 @@ const store = useEquipmentStore()
 const osTheme = useOsTheme()
 const injectedIsDark = inject<ComputedRef<boolean>>('isDark')
 const isDark = computed(() => injectedIsDark?.value ?? osTheme.value === 'dark')
+const dataSource = ref<StreamMode>('demo')
+const liveWsUrl = import.meta.env.VITE_WS_URL || 'ws://localhost:3000/ws/equipment'
+const liveSseUrl = import.meta.env.VITE_SSE_URL || 'http://localhost:3000/events/stream'
+const wsUrl = computed(() =>
+  dataSource.value === 'live' ? liveWsUrl : ''
+)
+const sseUrl = computed(() =>
+  dataSource.value === 'live' ? liveSseUrl : ''
+)
 const bottleneckGap = computed(() => store.bottleneck.targetWph - store.bottleneck.wph)
+const staleToolCount = computed(() =>
+  store.machines.filter(machine => machine.dataQuality !== 'fresh').length
+)
 
 const streamTagType = computed(() => {
   if (store.streamQuality === 'healthy') return 'success'
@@ -264,18 +283,32 @@ const heartbeatTone = computed<StreamTone>(() => {
   return 'offline'
 })
 
+const liveBackendHost = computed(() => {
+  try {
+    return new URL(liveSseUrl).host
+  } catch {
+    return 'Fastify realtime backend'
+  }
+})
+
 const streamMetrics = computed(() => [
   {
     label: '資料模式',
     value: store.streamMode === 'demo' ? 'Demo simulation' : 'Live WebSocket',
-    note: store.streamMode === 'demo' ? '無後端也可展示' : '外部串流來源',
+    note: store.streamMode === 'demo' ? '瀏覽器端模擬資料' : liveBackendHost.value,
     tone: 'healthy' as StreamTone,
   },
   {
-    label: '連線狀態',
+    label: 'WebSocket',
     value: readyStateLabel.value,
     note: store.wsConnected ? '資料通道啟用中' : '等待重新連線',
     tone: streamTone.value,
+  },
+  {
+    label: 'SSE events',
+    value: dataSource.value === 'demo' ? 'Demo bypass' : store.sseConnected ? '已連線' : '未連線',
+    note: dataSource.value === 'demo' ? '事件由 demo stream 產生' : '事件日誌通道',
+    tone: dataSource.value === 'demo' || store.sseConnected ? 'healthy' as StreamTone : 'watch' as StreamTone,
   },
   {
     label: 'Heartbeat',
@@ -290,21 +323,15 @@ const streamMetrics = computed(() => [
     tone: store.latencyMs <= 900 ? 'healthy' as StreamTone : 'watch' as StreamTone,
   },
   {
-    label: 'Reconnect',
-    value: `${store.reconnectAttempts} 次`,
-    note: store.reconnectAttempts === 0 ? '連線穩定' : '已啟動自動重連',
-    tone: store.reconnectAttempts === 0 ? 'healthy' as StreamTone : 'watch' as StreamTone,
-  },
-  {
-    label: '最後更新',
-    value: store.lastUpdated || '--:--:--',
-    note: 'Telemetry tick',
-    tone: streamTone.value,
+    label: 'Data quality',
+    value: `${staleToolCount.value} stale`,
+    note: `Reconnect ${store.reconnectAttempts} 次`,
+    tone: staleToolCount.value === 0 ? 'healthy' as StreamTone : 'watch' as StreamTone,
   },
 ])
 
-useWebSocket()
-useSSE()
+useWebSocket(wsUrl)
+useSSE(sseUrl)
 </script>
 
 <style scoped>
@@ -539,6 +566,14 @@ useSSE()
   justify-content: space-between;
   gap: 16px;
   margin-bottom: 16px;
+}
+
+.stream-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
 }
 
 .section-header h2 {
