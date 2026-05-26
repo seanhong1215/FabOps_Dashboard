@@ -1,120 +1,191 @@
 # AGENTS.md
 
-本檔案是 Codex / coding agent 的協作規則，不是對外展示文件。
+## 專案定位
 
-對外 README 請維持為作品展示入口；完整專案指南請維護在 `PROJECT_GUIDE.md`。
+這個 workspace 是「半導體廠務營運儀表板」作品集專案，分成前台 `fab-dashboard` 與後台 `fab-backend` 兩個 Node/TypeScript 子專案。
 
-## 文件分工
+目標是讓新功能可以在既有架構上增量迭代：先理解目前資料流、狀態管理、路由與元件邊界，再提出影響範圍與具體修改點，避免直接重寫整份檔案。
 
-- `README.md`：GitHub 首頁與技術主管閱讀入口，重點是作品價值、頁面導覽、技術棧、啟動與部署方式。
-- `PROJECT_GUIDE.md`：目前專案最新完整指南，整合功能、架構、頁面、展示話術、部署與後續優化項目。
-- `AGENTS.md`：本檔，記錄 coding agent 需要遵守的專案規則、執行限制與階段紀錄。
+## 專案結構
 
-## 專案概述
+```text
+.
+├─ fab-dashboard/   # Vue 3 儀表板前端
+└─ fab-backend/     # Fastify 即時資料後端
+```
 
-FabOps Dashboard 是一個使用 Vue 3 + TypeScript 打造的半導體智慧製造營運平台。畫面呈現即時設備健康狀態、生產 KPI、瓶頸分析、製程控制圖表、廠區 Digital Twin、告警中心、營運分析報表與 AI 異常偵測，定位為可用於作品展示的企業級前端作品。
+### 前台 `fab-dashboard`
 
-目標使用者是值班主管、設備工程師或製程值班人員。UI 應協助他們快速判讀產線健康狀態、設備瓶頸、異常優先級、AI 風險分數、營運趨勢與下一步處置。
-
-## 技術棧
+核心技術：
 
 - Vue 3 Composition API
 - TypeScript strict mode
-- Pinia：管理設備狀態、realtime status 與 demo telemetry
-- Vue Router：使用 route-level lazy loading
-- Naive UI：應用程式 UI 元件
-- Apache ECharts + `vue-echarts`：資料視覺化
-- Vite：開發伺服器與 production build
+- Vite
+- Pinia
+- Vue Router
+- Naive UI
+- Apache ECharts + `vue-echarts`
+- `@vicons/tabler`
 
-## 主要檔案
+重要檔案：
 
-- `src/App.vue`：應用程式 shell、header 導覽、light/dark theme provider 與全站 theme variables。
-- `src/views/DashboardView.vue`：主儀表板頁面，包含 hero、即時串流健康狀態、KPI、瓶頸、行動建議、charts、equipment matrix 與事件串流。
-- `src/views/FactoryMapView.vue`：廠區 Digital Twin / Factory Map，包含生產流程、站點風險、設備位置與設備詳情 panel。
-- `src/views/AlarmCenterView.vue`：告警中心，包含告警 KPI、篩選搜尋、即時告警清單、事件時間線與處置建議。
-- `src/views/AnalyticsView.vue`：營運分析與產能報表，包含 OEE / WPH 趨勢、良率損失、停機 Pareto、設備排名與班報摘要。
-- `src/views/AiInsightsView.vue`：AI 洞察頁，包含 anomaly score、RUL、模型信心值、異常貢獻因子、預測維修佇列與智慧製造情境流程。
-- `src/stores/equipment.ts`：Pinia store、demo 機台資料、衍生指標、realtime 狀態與 telemetry 模擬。
-- `src/types/equipment.ts`：機台、KPI、log、stream、time series、WebSocket 狀態等 domain type。
-- `src/composables/useWebSocket.ts`：WebSocket adapter，包含 demo simulation fallback、heartbeat、latency 計算與 auto reconnect 狀態。
-- `src/composables/useSSE.ts`：SSE event stream adapter。
-- `src/router/index.ts`：route-level lazy loading。
-- `vite.config.ts`：路徑 alias、dev server、GitHub Pages base path 與 manual chunk 策略。
+- `src/main.ts`：建立 Vue app，註冊 Pinia 與 Vue Router。
+- `src/App.vue`：全域 app shell、Naive UI provider、中文 locale、light/dark theme、header。
+- `src/router/index.ts`：目前只有 `/`，以 lazy loading 載入 `DashboardView.vue`。
+- `src/views/DashboardView.vue`：主儀表板頁面，組合 KPI、瓶頸分析、圖表、機台矩陣與事件流。
+- `src/stores/equipment.ts`：Pinia equipment store，保存機台、KPI、time series、事件 log、連線狀態與衍生指標。
+- `src/types/equipment.ts`：前端 domain types，包含 Machine、KPI、Log、WebSocket payload、chart point。
+- `src/composables/useWebSocket.ts`：WebSocket adapter；未傳 URL 時啟動前端 demo simulation。
+- `src/composables/useSSE.ts`：SSE adapter；未傳 URL 時不連線。
+- `src/components/*Chart.vue`：ECharts 圖表元件。
+- `src/components/KpiCard.vue`、`MachineStatus.vue`、`EventLog.vue`：儀表板卡片與事件列表。
+- `src/utils/format.ts`：狀態文字、tag type、時間與數字格式化。
+- `vite.config.ts`：`@` alias、dev server port 5173、production manual chunks。
 
-## UI 維護原則
+### 後台 `fab-backend`
 
-- 儀表板應維持資訊密度高、偏營運工具、容易掃讀。
-- 優先生產訊號、異常處置、AI 風險判讀、營運趨勢與決策資訊，不要做成行銷型 landing page。
-- 介面文字以中文化或現場實務用語為主；保留必要英文縮寫，例如 Fab、Tool、OEE、WPH、WIP、Recipe、Dispatch、RUL。
-- Card 只用於重複型 widget 或需要明確框架的 dashboard module。
-- 保持 desktop、tablet 與 mobile 的 responsive 行為。
-- 文字與背景對比要同時檢查 light mode 與 dark mode。
-- Dashboard、Digital Twin、Alarm Center、Analytics 與 AI Insights 都應使用 `--app-surface*`、`--app-border*`、`--app-shadow`。
-- Header 背景與文字必須使用 `--app-header-*` 變數，確保 theme toggle 後仍有足夠對比。
+核心技術：
 
-## 工程維護原則
+- Fastify 4
+- TypeScript
+- `@fastify/cors`
+- `@fastify/websocket`
+- `tsx` dev runtime
 
-- 優先沿用現有專案模式，不要過早新增抽象層。
-- 設備資料異動應先更新 `src/types/equipment.ts` 的型別。
-- 圖表邏輯應維持在 chart components 中；若只是報表式摘要，可在 view 內以 CSS 視覺化。
-- AI Insights 目前是 rule-based demo，不應引入後端或 ML runtime；其目標是展示智慧製造決策層。
-- 即時串流整合應維持在 composables 中；連線狀態、mode、heartbeat、latency、reconnect attempts 應集中由 `src/stores/equipment.ts` 暴露給 UI。
-- `useWebSocket.ts` 的 demo mode 必須持續可用，沒有外部 WebSocket server 時仍要能展示 heartbeat 與 latency。
-- 保留 `src/router/index.ts` 的 route-level lazy loading。
-- 保留 Vite manual chunks：`vue-vendor`、`ui`、`charts`、`zrender`，除非有量測結果支持調整。
-- GitHub Pages 部署使用 `gh-pages` 分支；build 時需設定 `GITHUB_PAGES=true` 讓 Vite base path 套用 `/FabOps_Dashboard/`。
-- 不要讓專案依賴後端才能展示；demo mode 必須在沒有外部服務時仍可運作。
+重要檔案：
 
-## 執行限制
+- `src/index.ts`：Fastify bootstrap、CORS、WebSocket plugin、routes、`/health`。
+- `src/routes/websocket.ts`：`GET /ws/equipment` WebSocket endpoint，定時廣播機台 telemetry。
+- `src/routes/sse.ts`：`GET /events/stream` SSE endpoint、`GET /api/machines`、`POST /api/events/emit`。
+- `src/mock/equipmentSimulator.ts`：模擬 OPC-UA / SECS-GEM / MES 資料來源，產生機台 payload 與事件。
+- `src/types/index.ts`：後端 MachineState、WsPayload、SseEvent、WsCommand types。
 
-- 除非使用者要求，否則不要自動執行型別檢查或測試，例如 `npm run type-check`、`npm run test`、`npm run build`。
-- 若使用者明確要求部署、驗證 production output，才可以執行 `npm run build`。
-- 每完成一個階段功能後，必須更新 `AGENTS.md`，commit 說明本階段完成內容，並推送到 `origin/main`。
-- 不要把使用者未要求的工作樹變更一起 stage 或 commit。
+## 現有功能
 
-## GitHub Pages 部署備註
+前台目前提供：
 
-目前採 `gh-pages` 分支部署，不使用 GitHub CLI，也不依賴 GitHub Actions workflow。
+- Fab command center hero：即時串流狀態、Fab health score、running/down tool、queued lots。
+- KPI cards：Overall OEE、Line WPH、First Pass Yield、Avg CVD Temp。
+- Active bottleneck：以 WPH / targetWph 比例找出目前瓶頸機台。
+- Shift focus：固定的建議處置清單。
+- Charts：CVD temperature、WPH by tool、Yield split、Pressure and gas flow。
+- Equipment fleet：機台狀態矩陣，顯示 recipe、owner、availability、utilization、queue、WPH、signals、incident。
+- Live incident stream：即時事件 log，含 severity、timestamp、machine id、message。
+- Light/dark theme：由 `App.vue` 控制並透過 `provide('isDark')` 傳給 dashboard/chart。
 
-優先使用 npm script：
+後台目前提供：
 
-```powershell
-npm run deploy
+- WebSocket telemetry stream：`ws://localhost:3000/ws/equipment`。
+- SSE event stream：`http://localhost:3000/events/stream`。
+- Machine snapshot：`GET /api/machines`。
+- Manual event emit：`POST /api/events/emit`。
+- Health check：`GET /health`。
+
+## 資料流
+
+目前前端預設是 demo-first：
+
+```text
+DashboardView.vue
+  ├─ useEquipmentStore()
+  ├─ useWebSocket()       # 沒有 URL 時啟動前端 setInterval 模擬資料
+  └─ useSSE()             # 沒有 URL 時不建立 EventSource
+
+useWebSocket()
+  ├─ startSimulation()
+  ├─ store.simulateTick()
+  └─ store.addLog()
+
+equipment store
+  ├─ machines / kpi / time series / logs / wsConnected / lastUpdated
+  ├─ computed: runningCount, errorCount, totalQueue, fabHealth, wphByMachine, bottleneck
+  └─ actions: applyWsUpdate, simulateTick, addLog
+
+Dashboard components
+  └─ 透過 props 接收 store state 或 computed 結果後渲染 UI
 ```
 
-`deploy` script 由 `build:pages` 與 `gh-pages -d dist` 組成，不需要 GitHub CLI，也不需要手動進入 `dist` 執行 git 指令。
+若要改成連後端，需要在 `DashboardView.vue` 對 composables 傳入 URL：
 
-手動部署流程：
+```ts
+useWebSocket('ws://localhost:3000/ws/equipment')
+useSSE('http://localhost:3000/events/stream')
+```
 
-```powershell
-$env:GITHUB_PAGES='true'
+後端資料流：
+
+```text
+equipmentSimulator.ts
+  ├─ readAllPayloads()
+  ├─ tickDowntime()
+  ├─ getAllMachines()
+  └─ nextEventLog()
+
+websocket.ts
+  └─ 每 2 秒 broadcast telemetry payload 給所有 WS clients
+
+sse.ts
+  ├─ 每 8 秒 broadcast event log 給所有 SSE clients
+  ├─ GET /api/machines 回傳 snapshot
+  └─ POST /api/events/emit 手動推送事件
+```
+
+## 迭代協作規則
+
+新功能開始前，先做現況分析與影響評估：
+
+1. 確認需求會碰到哪些層：`types`、store、composable、route、view、component、backend route、mock simulator。
+2. 若資料 shape 改變，先更新 type，再調整 store/composable/API，最後修改 UI。
+3. 若新增頁面，先檢查 `src/router/index.ts`，維持 route-level lazy loading。
+4. 若新增跨元件狀態，優先放在 Pinia store；單一元件內部狀態留在該元件。
+5. 若串接後端，優先沿用 `useWebSocket`、`useSSE` 或新增同風格 composable，不要在 view 直接堆連線邏輯。
+6. 若新增機台欄位，前後端 types 需要同步檢查：`fab-dashboard/src/types/equipment.ts` 與 `fab-backend/src/types/index.ts`。
+7. 若上下文不足，先提問，不盲目改動核心資料流。
+
+## 修改輸出格式
+
+提出或執行修改時，使用增量修改方式：
+
+- 說明新增檔案路徑與用途。
+- 說明修改檔案路徑與修改區塊。
+- 對既有檔案提供前後關鍵代碼作為定位標記。
+- 避免直接貼整份全新檔案，除非檔案本身就是新增的小型檔案。
+
+## 程式風格
+
+- 保持 Vue `<script setup lang="ts">`、Composition API 與現有命名風格。
+- TypeScript 必須符合 strict mode、`noUnusedLocals`、`noUnusedParameters`。
+- 前端 import alias 使用 `@/`。
+- UI 優先沿用 Naive UI 元件、既有 CSS variables 與卡片樣式。
+- 圖表優先封裝在 `components/*Chart.vue`，不要把 ECharts option 大量塞進 view。
+- 後端 route 維持 Fastify plugin function 風格。
+- 模擬資料集中在 `mock/equipmentSimulator.ts`，不要散落在 route。
+
+## 常用指令
+
+前台：
+
+```bash
+cd fab-dashboard
+npm run dev
+npm run type-check
 npm run build
-New-Item -ItemType File -Path dist/.nojekyll -Force
-
-cd dist
-git init
-git checkout -b gh-pages
-git add .
-git commit -m "deploy: GitHub Pages"
-git remote add origin git@github.com:seanhong1215/FabOps_Dashboard.git
-git push -f origin gh-pages
+npm run preview
 ```
 
-## 階段紀錄
+後台：
 
-- `feat: 建立 FabOps 監控儀表板`：建立 Vue 3 + TypeScript dashboard、demo telemetry、charts、Digital Twin 與 Alarm Center 初版。
-- `docs: 更新專案協作指引`：重建可讀的專案協作規範。
-- `feat: 新增營運分析頁`：新增 `/analytics` 營運分析頁、header 導覽項、報表 KPI、OEE / WPH 趨勢、良率損失、停機 Pareto、設備排名與班報摘要。
-- `feat: 強化即時串流狀態監控`：新增 stream mode、ready state、heartbeat status、latency、reconnect attempts、last heartbeat，並在 Dashboard 顯示即時串流健康狀態。
-- `feat: 新增 AI 智慧洞察頁`：新增 `/ai-insights`，將作品從監控 dashboard 提升為智慧製造平台。
-- `feat: 優化即時串流面板並升級 Vite`：優化首頁 realtime stream-grid 視覺，將純文字區塊升級為狀態卡片；並因安全性需求升級 Vite 至 8.x。
-- `docs: 完善作品展示並設定 GitHub Pages`：重寫 README 作品展示說明，補上頁面截圖說明、架構圖、展示講法與 GitHub Pages demo URL。
-- `docs: 改用 gh-pages 分支部署`：移除 GitHub Actions Pages workflow，改採 `gh-pages` 分支部署。
-- 本階段：區分 `README.md`、`AGENTS.md` 與 `PROJECT_GUIDE.md` 的文件角色，新增目前專案最新整合指南。
-- 本階段：移除介面與文件中不適合產品語境的展示字樣，改為作品展示與營運情境語境。
-- 本階段：提交文件整理結果，移除舊的 `Step1.md`，保留 `Intro.md` 作為原始優化方向參考，並清空工作樹未提交變更。
-- 本階段：簡化 `npm run deploy`，改用 `gh-pages` npm 套件推送 `dist`，避免在 script 內手寫完整 git init / remote / push 流程。
+```bash
+cd fab-backend
+npm run dev
+npm run type-check
+npm run build
+npm start
+```
 
-## 已知 Build 提醒
+## 已知注意事項
 
-執行 build 時，Vite / Rolldown 可能顯示 plugin timing 或 chunk size warning。這些目前不會阻擋 production output；若要處理，優先檢查 `charts` chunk 與圖表套件切分策略。
+- 根目錄目前不是 Git repository；若要提交變更，需確認實際 repo 邊界。
+- `fab-dashboard/AGENTS.md` 與部分後端註解目前顯示為亂碼，疑似舊檔案編碼不一致；新文件請使用 UTF-8。
+- 前台 demo mode 不依賴後台即可運行；真正串接後端時要顯式傳入 WebSocket/SSE URL。
+- 後端 CORS allowlist 目前包含 localhost/127.0.0.1 的 5173 與 4173，以及 `.company.com`。

@@ -1,74 +1,91 @@
-# FabOps Dashboard
+# 半導體廠務營運儀表板
 
-半導體智慧製造營運平台 / Smart Manufacturing Operations Platform
-
-FabOps Dashboard 是以 Vue 3 + TypeScript 建置的作品集專案，定位不是單純監控 dashboard，而是可展示「即時營運監控、Digital Twin、告警處置、營運分析、AI 風險判讀」的企業級前端平台。
-
-## Live Demo
-
-GitHub Pages:
+這個 workspace 包含一個半導體 FabOps 即時營運儀表板作品集專案，分成前台 Vue dashboard 與後台 Fastify realtime server。
 
 ```text
-https://seanhong1215.github.io/FabOps_Dashboard/
+.
+├─ fab-dashboard/   # Vue 3 + Vite + Pinia 前端儀表板
+└─ fab-backend/     # Fastify + WebSocket + SSE 後端
 ```
-
-此作品可在沒有後端服務的情況下以 demo mode 運作，前端會模擬設備 telemetry、即時事件、告警與 AI 風險訊號。
-
-## 作品展示重點
-
-- 即時總覽：Fab health、OEE、WPH、Yield、設備瓶頸與行動建議。
-- 即時串流：WebSocket demo fallback、heartbeat、latency、reconnect attempts。
-- Digital Twin：廠區流程、站點風險、設備位置與設備詳情。
-- 告警中心：告警分級、搜尋篩選、事件時間線與處置建議。
-- 營運分析：OEE / WPH 趨勢、良率損失、停機 Pareto、設備排名。
-- AI 洞察：anomaly score、RUL、異常貢獻因子與預測維修佇列。
-
-## 頁面導覽
-
-| 頁面 | Route | 展示價值 |
-| --- | --- | --- |
-| 即時總覽 | `/` | 主管視角的產線健康、KPI、瓶頸與即時串流狀態 |
-| 廠區地圖 | `/factory-map` | Digital Twin、製程流程、站點異常與設備定位 |
-| 告警中心 | `/alarms` | 告警分級、處置狀態、事件追蹤與建議 |
-| 營運分析 | `/analytics` | 趨勢分析、損失拆解、停機 Pareto 與班報摘要 |
-| AI 洞察 | `/ai-insights` | 異常風險、RUL、特徵貢獻與預測維修展示 |
 
 ## 技術棧
 
-- Vue 3 Composition API
-- TypeScript strict mode
-- Pinia
-- Vue Router lazy loading
-- Naive UI
-- Apache ECharts + `vue-echarts`
-- Vite 8
-- GitHub Pages deployment via `gh-pages` branch
+前台：
 
-## 系統架構概念
+- Vue 3 Composition API
+- TypeScript
+- Vite
+- Pinia
+- Vue Router
+- Naive UI
+- ECharts / vue-echarts
+
+後台：
+
+- Node.js
+- TypeScript
+- Fastify
+- `@fastify/websocket`
+- `@fastify/cors`
+- Server-Sent Events
+
+## 現有功能
+
+- Fab health command center：即時狀態、Fab health score、機台運轉數、異常數、queue。
+- KPI dashboard：OEE、WPH、First Pass Yield、Avg CVD Temp。
+- 瓶頸分析：依各機台 WPH / targetWph 找出 active bottleneck。
+- 製程圖表：CVD temperature、WPH by tool、Yield split、Pressure / gas flow。
+- 機台矩陣：顯示 status、recipe、owner、availability、utilization、queue、signals、incident。
+- 事件流：live incident stream，支援 severity、timestamp、machine id、message。
+- Light/dark theme：由前台 app shell 控制。
+- 後台 realtime endpoints：WebSocket telemetry、SSE event stream、machine snapshot、manual event emit、health check。
+
+## 架構摘要
+
+前台資料流以 Pinia store 為中心：
 
 ```text
-Machine Sensor / PLC / Tool Telemetry
-        |
-        v
-MQTT / OPC UA / Modbus Gateway
-        |
-        v
-Node.js WebSocket / SSE Gateway
-        |
-        v
-Vue 3 Frontend
-        |
-        +-- Pinia equipment store
-        +-- WebSocket composable with demo fallback
-        +-- ECharts visualization
-        +-- Naive UI enterprise interface
+DashboardView.vue
+  ├─ useWebSocket()
+  ├─ useSSE()
+  └─ useEquipmentStore()
+
+equipment store
+  ├─ machines / kpi / time series / logs / wsConnected
+  ├─ computed metrics: fabHealth, bottleneck, wphByMachine
+  └─ actions: applyWsUpdate, simulateTick, addLog
 ```
 
-目前作品採 demo-first 設計：沒有外部 WebSocket server 時，仍可由前端模擬資料流與連線健康狀態，方便現場或遠端展示。
+目前前台預設可用 Demo mode；Dashboard 上可切換 `Demo` / `Backend Live`。Demo mode 會在瀏覽器端模擬 telemetry；Backend Live 會讀取 `VITE_WS_URL` 與 `VITE_SSE_URL`，未設定時預設連本機後端。
 
-## 本機啟動
+```text
+VITE_WS_URL=ws://localhost:3000/ws/equipment
+VITE_SSE_URL=http://localhost:3000/events/stream
+```
+
+後台資料流：
+
+```text
+mock/equipmentSimulator.ts
+  ├─ 產生機台 telemetry payload
+  ├─ 維護 downtime
+  └─ 產生事件 log
+
+routes/websocket.ts
+  └─ /ws/equipment 每 2 秒推送機台 telemetry
+
+routes/sse.ts
+  ├─ /events/stream 每 8 秒推送事件
+  ├─ /api/machines 回傳機台 snapshot
+  └─ /api/events/emit 手動推送事件
+```
+
+## 開發
+
+前台：
 
 ```bash
+cd fab-dashboard
 npm install
 npm run dev
 ```
@@ -79,51 +96,106 @@ npm run dev
 http://127.0.0.1:5173/
 ```
 
-Production build:
+後台：
 
 ```bash
-npm run build
+cd fab-backend
+npm install
+npm run dev
 ```
 
-Preview:
-
-```bash
-npm run preview
-```
-
-## GitHub Pages 部署
-
-此專案目前使用 `gh-pages` 分支部署，不依賴 GitHub CLI。
-
-```powershell
-npm run deploy
-```
-
-部署腳本會自動執行 GitHub Pages build、建立 `dist/.nojekyll`，並透過 `gh-pages` 套件將 `dist` 推送到 `gh-pages` 分支。
-
-手動部署流程如下：
-
-```powershell
-$env:GITHUB_PAGES='true'
-npm run build
-New-Item -ItemType File -Path dist/.nojekyll -Force
-
-cd dist
-git init
-git checkout -b gh-pages
-git add .
-git commit -m "deploy: GitHub Pages"
-git remote add origin git@github.com:seanhong1215/FabOps_Dashboard.git
-git push -f origin gh-pages
-```
-
-GitHub repository settings 需設定：
+預設 endpoints：
 
 ```text
-Settings -> Pages -> Build and deployment -> Deploy from a branch -> gh-pages / root
+GET  http://localhost:3000/health
+GET  http://localhost:3000/api/machines
+GET  http://localhost:3000/events/stream
+WS   ws://localhost:3000/ws/equipment
+POST http://localhost:3000/api/events/emit
 ```
 
-## 更多專案說明
+## 驗證
 
-- 最新完整指南：[PROJECT_GUIDE.md](./PROJECT_GUIDE.md)
-- Codex 協作規則：[AGENTS.md](./AGENTS.md)
+前台：
+
+```bash
+cd fab-dashboard
+npm run type-check
+npm run build
+```
+
+## 部署：GitHub Pages + Live Backend
+
+GitHub Pages 只能部署前端靜態檔，不能執行 Fastify、WebSocket 或 SSE 後端。正式展示時建議：
+
+```text
+GitHub Pages      → fab-dashboard 靜態前端
+Render / Railway  → fab-backend Node.js 即時後端
+```
+
+### 1. 部署後端到 Render / Railway
+
+後端 service 設定：
+
+```text
+Root directory: fab-backend
+Build command: npm install && npm run build
+Start command: npm start
+```
+
+環境變數：
+
+```text
+PORT=3000
+HOST=0.0.0.0
+ALLOWED_ORIGINS=https://你的-github-帳號.github.io
+```
+
+上線後確認：
+
+```text
+GET  https://你的後端網域/health
+GET  https://你的後端網域/api/machines
+GET  https://你的後端網域/events/stream
+WS   wss://你的後端網域/ws/equipment
+```
+
+### 2. 部署前端到 GitHub Pages
+
+前端 build 時設定：
+
+```text
+VITE_WS_URL=wss://你的後端網域/ws/equipment
+VITE_SSE_URL=https://你的後端網域/events/stream
+```
+
+本機開發可參考：
+
+```text
+fab-dashboard/.env.example
+fab-backend/.env.example
+```
+
+部署後切換 Dashboard 的 `Backend Live`，前端會連到上述 `VITE_WS_URL` 與 `VITE_SSE_URL`。`Demo` 模式仍不依賴後端，適合後端休眠或面試現場快速展示。
+
+後台：
+
+```bash
+cd fab-backend
+npm run type-check
+npm run build
+```
+
+## 新功能迭代規則
+
+請先閱讀根目錄 `AGENTS.md`。新增功能時先評估會影響哪些層：
+
+- `types`
+- Pinia store
+- composables
+- Vue route
+- view / components
+- backend routes
+- mock simulator
+
+修改方式採增量修改：新增檔案需說明用途，修改既有檔案需標出修改區塊與前後對齊標記；資料 shape 改變時，前後端 types 需要同步檢查。
